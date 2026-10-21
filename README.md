@@ -1,5 +1,6 @@
 > **개인용 웹 대시보드:** 브라우저에서 위젯을 편집하고 SQLite에 저장하는 새 모드가 추가되었습니다.
 > [사용 방법](docs/editable-dashboard.md) · [맥 미니 배포·복구](docs/operations.md) · [출시 검증 현황](docs/release-readiness.md)
+> [다음 80단계 구현 계획](docs/frontier-implementation-plan.md) · [관련 저장소 비교](docs/research/related-repositories.md)
 
 <p align="center"><em>What if you could see everything at a...</em></p>
 <h1 align="center">Glance</h1>
