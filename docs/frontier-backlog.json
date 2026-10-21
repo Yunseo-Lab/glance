@@ -6,7 +6,10 @@
   "status_meaning": {
     "documented": "Research/design artifacts exist, not newly implemented product features",
     "planned": "Not implemented or newly verified",
-    "external": "Requires actual Mac/domain conditions; do not count as passed"
+    "external": "Requires actual Mac/domain conditions; do not count as passed",
+    "in_progress": "Implementation underway; not counted complete",
+    "verified": "Implemented and verified; see step evidence",
+    "blocked": "Specific prerequisite or failing check prevents completion"
   },
   "steps": [
     {
@@ -160,9 +163,17 @@
       "depends_on": [
         "F008"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "npm --prefix web run build: PASS",
+        "Playwright: 16 passed",
+        "internal/dashboard/catalog_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:47:16+00:00",
+      "progress_note": "6종 위젯·2종 provider catalog와 renderer registry 전환, 기존 설정과 인증 호환 확인.",
+      "started_at": "2026-10-21T22:44:58+00:00"
     },
     {
       "id": "F010",
@@ -173,9 +184,16 @@
       "depends_on": [
         "F009"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "npm --prefix web run build: PASS",
+        "internal/dashboard/catalog_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:47:42+00:00",
+      "progress_note": "version 생략/명시 v1 호환, 음수·미래 버전과 trailing JSON 거부, catalog capability 계약 검증.",
+      "started_at": "2026-10-21T22:47:16+00:00"
     },
     {
       "id": "F011",
@@ -186,9 +204,17 @@
       "depends_on": [
         "F010"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "contracts:generate/check: PASS",
+        "go test -race ./internal/dashboard: PASS",
+        "npm --prefix web run build: PASS",
+        "internal/dashboard/contract_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:49:52+00:00",
+      "progress_note": "OpenAPI生成 TS 타입·Go catalog JSON을 UI가 사용하며 CI drift 검사와 Go DTO/enum 계약 검사가 통과했다.",
+      "started_at": "2026-10-21T22:47:42+00:00"
     },
     {
       "id": "F012",
@@ -199,9 +225,16 @@
       "depends_on": [
         "F011"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./...: PASS",
+        "Playwright: 16 passed",
+        "internal/dashboard/service.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:51:20+00:00",
+      "progress_note": "저장·캐시 정리·snapshot use case를 application service로 분리. 전체 Go race와 기존 브라우저 16개 통과.",
+      "started_at": "2026-10-21T22:49:52+00:00"
     },
     {
       "id": "F013",
@@ -212,9 +245,12 @@
       "depends_on": [
         "F012"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:51:20+00:00",
+      "progress_note": "기존 DB의 자동 사전 백업·순차 migration·checksum·실패 rollback과 미래 버전 거부를 구현한다.",
+      "started_at": "2026-10-21T22:51:20+00:00"
     },
     {
       "id": "F014",

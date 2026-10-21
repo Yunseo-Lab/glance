@@ -180,45 +180,54 @@ type WeatherData struct {
 }
 
 func (p *Providers) Fetch(ctx context.Context, s Source) (any, error) {
-	switch s.Type {
-	case "rss":
-		var c RSSSource
-		if err := decodeConfig(s.Config, &c); err != nil {
-			return nil, err
-		}
-		data, err := p.get(ctx, c.URL)
-		if err != nil {
-			return nil, err
-		}
-		feed, err := gofeed.NewParser().Parse(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		out := FeedData{Title: feed.Title, Items: []FeedItem{}}
-		for _, item := range feed.Items {
-			if len(out.Items) >= 50 {
-				break
-			}
-			if _, err := publicURL(item.Link); err != nil {
-				continue
-			}
-			out.Items = append(out.Items, FeedItem{Title: item.Title, URL: item.Link, PublishedAt: item.PublishedParsed})
-		}
-		return out, nil
-	case "weather":
-		var c WeatherSource
-		if err := decodeConfig(s.Config, &c); err != nil {
-			return nil, err
-		}
-		query := url.Values{"latitude": {strconv.FormatFloat(c.Latitude, 'f', 6, 64)}, "longitude": {strconv.FormatFloat(c.Longitude, 'f', 6, 64)}, "current": {"temperature_2m,apparent_temperature,relative_humidity_2m,weather_code"}}
-		data, err := p.get(ctx, "https://api.open-meteo.com/v1/forecast?"+query.Encode())
-		if err != nil {
-			return nil, err
-		}
-		return parseWeather(data, c)
-	default:
+	definition, ok := providerDefinitions[s.Type]
+	if !ok {
 		return nil, errors.New("unsupported provider")
 	}
+	if err := supportedConfigVersion(s.ConfigVersion, definition.ConfigVersion); err != nil {
+		return nil, err
+	}
+	if err := definition.validate(s.Config); err != nil {
+		return nil, err
+	}
+	return definition.fetch(p, ctx, s)
+}
+func (p *Providers) fetchRSS(ctx context.Context, s Source) (any, error) {
+	var c RSSSource
+	if err := decodeConfig(s.Config, &c); err != nil {
+		return nil, err
+	}
+	data, err := p.get(ctx, c.URL)
+	if err != nil {
+		return nil, err
+	}
+	feed, err := gofeed.NewParser().Parse(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	out := FeedData{Title: feed.Title, Items: []FeedItem{}}
+	for _, item := range feed.Items {
+		if len(out.Items) >= 50 {
+			break
+		}
+		if _, err := publicURL(item.Link); err != nil {
+			continue
+		}
+		out.Items = append(out.Items, FeedItem{Title: item.Title, URL: item.Link, PublishedAt: item.PublishedParsed})
+	}
+	return out, nil
+}
+func (p *Providers) fetchWeather(ctx context.Context, s Source) (any, error) {
+	var c WeatherSource
+	if err := decodeConfig(s.Config, &c); err != nil {
+		return nil, err
+	}
+	query := url.Values{"latitude": {strconv.FormatFloat(c.Latitude, 'f', 6, 64)}, "longitude": {strconv.FormatFloat(c.Longitude, 'f', 6, 64)}, "current": {"temperature_2m,apparent_temperature,relative_humidity_2m,weather_code"}}
+	data, err := p.get(ctx, "https://api.open-meteo.com/v1/forecast?"+query.Encode())
+	if err != nil {
+		return nil, err
+	}
+	return parseWeather(data, c)
 }
 
 func parseWeather(data []byte, c WeatherSource) (WeatherData, error) {

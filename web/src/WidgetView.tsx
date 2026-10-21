@@ -80,17 +80,10 @@ function Calendar({ now }: { now: Date }) {
   );
 }
 
-export default function WidgetView({
-  widget,
-  snapshot,
-  now,
-}: {
-  widget: Widget;
-  snapshot?: Snapshot;
-  now: Date;
-}) {
-  switch (widget.type) {
-    case "clock":
+interface WidgetProps { widget: Widget; snapshot?: Snapshot; now: Date; }
+const renderers: Record<Widget["type"], (props: WidgetProps) => React.ReactNode> = {
+clock: ({ widget, snapshot, now }) => {
+
       return (
         <div className="clock-view">
           <span className="eyebrow">
@@ -130,9 +123,15 @@ export default function WidgetView({
           </div>
         </div>
       );
-    case "calendar":
+
+},
+calendar: ({ widget, snapshot, now }) => {
+
       return <Calendar now={now} />;
-    case "note":
+
+},
+note: ({ widget, snapshot, now }) => {
+
       return (
         <div className="note-view">
           <p>{widget.config.body || "편집에서 첫 메모를 남겨보세요."}</p>
@@ -141,7 +140,10 @@ export default function WidgetView({
           </span>
         </div>
       );
-    case "bookmarks":
+
+},
+bookmarks: ({ widget, snapshot, now }) => {
+
       return (
         <div className="bookmark-list">
           {widget.config.links?.length ? (
@@ -175,7 +177,10 @@ export default function WidgetView({
           )}
         </div>
       );
-    case "rss": {
+
+},
+rss: ({ widget, snapshot, now }) => {
+ {
       const feed = snapshot?.data as FeedData | undefined;
       return (
         <>
@@ -213,7 +218,10 @@ export default function WidgetView({
         </>
       );
     }
-    case "weather": {
+
+},
+weather: ({ widget, snapshot, now }) => {
+ {
       const weather = snapshot?.data as WeatherData | undefined;
       const description = weather
         ? weather.code === 0
@@ -253,8 +261,9 @@ export default function WidgetView({
         </>
       );
     }
-  }
-}
+},
+};
+export default function WidgetView(props: WidgetProps) {return renderers[props.widget.type](props);}
 
 function RemoteStatus({ snapshot }: { snapshot?: Snapshot }) {
   if (snapshot?.data)

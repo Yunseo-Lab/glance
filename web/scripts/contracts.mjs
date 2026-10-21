@@ -1,0 +1,13 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import openapiTS, { astToString } from 'openapi-typescript';
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const write = process.argv.includes('--write');
+execFileSync('go', ['run', './cmd/dashboard-contracts', ...(write ? [] : ['--check'])], { cwd: root, stdio: 'inherit' });
+const schema = new URL('../../docs/dashboard-api.openapi.yaml', import.meta.url);
+const target = new URL('../src/generated/api.ts', import.meta.url);
+const generated = '// Generated from docs/dashboard-api.openapi.yaml; do not edit.\n' + astToString(await openapiTS(schema));
+if (write) writeFileSync(target, generated);
+else if (readFileSync(target, 'utf8') !== generated) throw new Error('API type drift: run npm --prefix web run contracts:generate');
+console.log(write ? 'Generated API contracts and catalog' : 'PASS: generated contracts and catalog are current');

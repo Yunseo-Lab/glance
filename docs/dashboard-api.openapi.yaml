@@ -13,6 +13,28 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/catalog:
+    get:
+      operationId: getCatalog
+      responses:
+        '200':
+          description: Versioned, build-time widget and provider catalog; never includes credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, widgets, providers]
+                properties:
+                  version:
+                    type: integer
+                  widgets:
+                    type: array
+                    items:
+                      type: object
+                  providers:
+                    type: array
+                    items:
+                      type: object
   /api/v1/auth/session:
     get:
       security: []
@@ -150,8 +172,11 @@ components:
   schemas:
     Error:
       type: object
-      required: [error]
+      required: [error, code]
       properties:
+        code:
+          type: string
+          description: Stable HTTP error class such as unauthorized or conflict
         error:
           type: string
     Board:
@@ -186,6 +211,11 @@ components:
       additionalProperties: false
       required: [id, type, title, size, config]
       properties:
+        configVersion:
+          type: integer
+          minimum: 1
+          maximum: 1
+          description: Omitted in original v1 documents; omission means version 1. Unknown versions are rejected.
         id:
           type: string
         type:
@@ -200,28 +230,59 @@ components:
           type: string
           description: Required for RSS/weather; must reference a source of the same type
         config:
-          type: object
-          description: |
-            clock: {timezone: IANA name}; note: {body: text};
-            bookmarks: {links: [{title, url: HTTPS URL}]};
-            rss: {limit: integer 1..20}; calendar/weather: {}.
-            Unknown configuration fields are rejected by the server.
+          $ref: '#/components/schemas/WidgetConfig'
     Source:
       type: object
       additionalProperties: false
       required: [id, type, config]
       properties:
+        configVersion:
+          type: integer
+          minimum: 1
+          maximum: 1
+          description: Omitted in original v1 documents; omission means version 1. Unknown versions are rejected.
         id:
           type: string
         type:
           type: string
           enum: [rss, weather]
         config:
-          type: object
-          description: |
-            rss: {url: public HTTPS feed URL on port 443};
-            weather: {latitude: number -90..90, longitude: number -180..180,
-            location: display name}. Credentials and private destinations are unsupported.
+          $ref: '#/components/schemas/SourceConfig'
+    Link:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+    WidgetConfig:
+      type: object
+      additionalProperties: false
+      description: Per-type fields are strictly validated using the server catalog.
+      properties:
+        timezone:
+          type: string
+        body:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        limit:
+          type: integer
+    SourceConfig:
+      type: object
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        location:
+          type: string
     Snapshot:
       type: object
       required: [state]

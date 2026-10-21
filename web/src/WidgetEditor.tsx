@@ -3,14 +3,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import type { Link, Source, Widget, WidgetType } from "./types";
 import { validateWidget } from "./validation";
 
-export const labels: Record<WidgetType, string> = {
-  clock: "세계 시계",
-  calendar: "캘린더",
-  rss: "RSS 소식",
-  weather: "날씨",
-  bookmarks: "즐겨찾기",
-  note: "메모",
-};
+import { labels } from "./catalog";
 
 export default function WidgetEditor({
   widget,
@@ -60,6 +53,7 @@ export default function WidgetEditor({
       }
     }
     const next: Widget = {
+      configVersion: 1,
       id: widget?.id || crypto.randomUUID(),
       type,
       title: title.trim(),
@@ -91,6 +85,7 @@ export default function WidgetEditor({
         source?.type === type &&
         JSON.stringify(source.config) === JSON.stringify(config);
       nextSource = {
+        configVersion: 1,
         id: unchanged ? source.id : crypto.randomUUID(),
         type,
         config,

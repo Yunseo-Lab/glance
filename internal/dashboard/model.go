@@ -5,10 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"io"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // Board is a versioned aggregate: layout and source edits commit together.
@@ -22,18 +21,20 @@ type Board struct {
 }
 
 type Widget struct {
-	ID       string          `json:"id"`
-	Type     string          `json:"type"`
-	Title    string          `json:"title"`
-	Size     string          `json:"size"`
-	SourceID string          `json:"sourceId,omitempty"`
-	Config   json.RawMessage `json:"config"`
+	ConfigVersion int             `json:"configVersion,omitempty"`
+	ID            string          `json:"id"`
+	Type          string          `json:"type"`
+	Title         string          `json:"title"`
+	Size          string          `json:"size"`
+	SourceID      string          `json:"sourceId,omitempty"`
+	Config        json.RawMessage `json:"config"`
 }
 
 type Source struct {
-	ID     string          `json:"id"`
-	Type   string          `json:"type"`
-	Config json.RawMessage `json:"config"`
+	ConfigVersion int             `json:"configVersion,omitempty"`
+	ID            string          `json:"id"`
+	Type          string          `json:"type"`
+	Config        json.RawMessage `json:"config"`
 }
 
 type ClockConfig struct {
@@ -100,7 +101,14 @@ func decodeConfig(data json.RawMessage, dst any) error {
 	}
 	d := json.NewDecoder(strings.NewReader(string(data)))
 	d.DisallowUnknownFields()
-	return d.Decode(dst)
+	if err := d.Decode(dst); err != nil {
+		return err
+	}
+	var extra any
+	if d.Decode(&extra) != io.EOF {
+		return errors.New("설정은 JSON 하나여야 합니다")
+	}
+	return nil
 }
 
 func publicURL(value string) (*url.URL, error) {
@@ -130,25 +138,15 @@ func (b Board) Validate() error {
 			return errors.New("데이터 소스 ID가 중복됩니다")
 		}
 		sources[s.ID] = s
-		switch s.Type {
-		case "rss":
-			var c RSSSource
-			if err := decodeConfig(s.Config, &c); err != nil {
-				return err
-			}
-			if _, err := publicURL(c.URL); err != nil {
-				return err
-			}
-		case "weather":
-			var c WeatherSource
-			if err := decodeConfig(s.Config, &c); err != nil {
-				return err
-			}
-			if c.Latitude < -90 || c.Latitude > 90 || c.Longitude < -180 || c.Longitude > 180 || strings.TrimSpace(c.Location) == "" || len(c.Location) > 100 {
-				return errors.New("날씨 위치와 좌표를 확인하세요")
-			}
-		default:
+		definition, ok := providerDefinitions[s.Type]
+		if !ok {
 			return errors.New("지원하지 않는 데이터 소스입니다")
+		}
+		if err := supportedConfigVersion(s.ConfigVersion, definition.ConfigVersion); err != nil {
+			return err
+		}
+		if err := definition.validate(s.Config); err != nil {
+			return err
 		}
 	}
 	ids := map[string]bool{}
@@ -163,66 +161,36 @@ func (b Board) Validate() error {
 		if w.Size != "small" && w.Size != "wide" {
 			return errors.New("잘못된 위젯 크기입니다")
 		}
-		switch w.Type {
-		case "clock":
-			var c ClockConfig
-			if err := decodeConfig(w.Config, &c); err != nil {
-				return err
-			}
-			if c.Timezone == "" || c.Timezone == "Local" {
-				return errors.New("명시적인 IANA 시간대를 입력하세요")
-			}
-			if _, err := time.LoadLocation(c.Timezone); err != nil {
-				return errors.New("유효한 시간대를 입력하세요")
-			}
-		case "note":
-			var c NoteConfig
-			if err := decodeConfig(w.Config, &c); err != nil {
-				return err
-			}
-			if len(c.Body) > 12000 {
-				return errors.New("메모가 너무 깁니다")
-			}
-		case "bookmarks":
-			var c BookmarkConfig
-			if err := decodeConfig(w.Config, &c); err != nil {
-				return err
-			}
-			if len(c.Links) > 20 {
-				return errors.New("북마크는 최대 20개입니다")
-			}
-			for _, l := range c.Links {
-				if strings.TrimSpace(l.Title) == "" || len(l.Title) > 100 {
-					return errors.New("북마크 이름을 확인하세요")
-				}
-				if _, err := publicURL(l.URL); err != nil {
-					return err
-				}
-			}
-		case "rss":
-			var c RSSConfig
-			if err := decodeConfig(w.Config, &c); err != nil {
-				return err
-			}
-			if c.Limit < 1 || c.Limit > 20 {
-				return errors.New("RSS 표시 개수는 1~20입니다")
-			}
-		case "calendar", "weather":
-			var c struct{}
-			if err := decodeConfig(w.Config, &c); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("지원하지 않는 위젯: %s", w.Type)
+		definition, ok := widgetDefinitions[w.Type]
+		if !ok {
+			return errors.New("지원하지 않는 위젯입니다")
 		}
-		if w.Type == "rss" || w.Type == "weather" {
+		if err := supportedConfigVersion(w.ConfigVersion, definition.ConfigVersion); err != nil {
+			return err
+		}
+		if err := definition.validate(w.Config); err != nil {
+			return err
+		}
+		if definition.SourceType != "" {
 			s, ok := sources[w.SourceID]
-			if !ok || s.Type != w.Type {
+			if !ok || s.Type != definition.SourceType {
 				return errors.New("위젯과 데이터 소스가 일치하지 않습니다")
 			}
 		} else if w.SourceID != "" {
 			return errors.New("이 위젯은 데이터 소스를 사용하지 않습니다")
 		}
+	}
+	return nil
+}
+
+// Version zero is the original export/API format. Its meaning is explicitly v1;
+// unknown future versions must never be interpreted using today's validator.
+func supportedConfigVersion(version, current int) error {
+	if version == 0 {
+		version = 1
+	}
+	if version != current {
+		return errors.New("지원하지 않는 설정 버전입니다")
 	}
 	return nil
 }

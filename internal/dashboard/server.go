@@ -33,8 +33,14 @@ func jsonResponse(w http.ResponseWriter, status int, data any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
 }
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+	Code  string `json:"code"`
+}
+
 func apiError(w http.ResponseWriter, status int, message string) {
-	jsonResponse(w, status, map[string]string{"error": message})
+	jsonResponse(w, status, ErrorResponse{Error: message, Code: strings.ToLower(strings.ReplaceAll(http.StatusText(status), " ", "_"))})
 }
 
 // Validation previews share commit validation without touching storage or providers.
@@ -72,8 +78,10 @@ func readBoardRequest(w http.ResponseWriter, r *http.Request) (Board, bool) {
 
 func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 	mux := http.NewServeMux()
+	service := &DashboardService{store: store, runtime: runtime}
 	auth := newOwnerAuth(token)
 	auth.register(mux)
+	mux.HandleFunc("GET /api/v1/catalog", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Catalog()) })
 	mux.HandleFunc("GET /api/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := store.db.PingContext(r.Context()); err != nil {
 			apiError(w, 503, "저장소를 준비하지 못했습니다")
@@ -93,7 +101,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 		jsonResponse(w, 200, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("GET /api/v1/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		b, err := store.Board()
+		b, err := service.Board("home")
 		if err != nil {
 			apiError(w, 500, "대시보드를 읽을 수 없습니다")
 			return
@@ -105,7 +113,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 		if !ok {
 			return
 		}
-		b, err := store.Save(b)
+		b, err := service.Commit(b)
 		if errors.Is(err, ErrConflict) {
 			apiError(w, 409, err.Error())
 			return
@@ -115,25 +123,13 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 			apiError(w, 500, "대시보드를 저장하지 못했습니다")
 			return
 		}
-		if err = store.pruneSnapshots(b.Sources); err != nil {
-			log.Printf("dashboard cache prune: %v", err)
-		}
 		jsonResponse(w, 200, b)
 	})
 	mux.HandleFunc("GET /api/v1/snapshots", func(w http.ResponseWriter, r *http.Request) {
-		b, err := store.Board()
+		out, err := service.Snapshots("home")
 		if err != nil {
-			apiError(w, 500, "대시보드를 읽을 수 없습니다")
+			apiError(w, 500, "캐시를 읽을 수 없습니다")
 			return
-		}
-		out := map[string]Snapshot{}
-		for _, s := range b.Sources {
-			snap, err := runtime.Read(s)
-			if err != nil {
-				apiError(w, 500, "캐시를 읽을 수 없습니다")
-				return
-			}
-			out[s.ID] = snap
 		}
 		jsonResponse(w, 200, out)
 	})

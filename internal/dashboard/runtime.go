@@ -150,9 +150,9 @@ func (r *Runtime) refresh(key string, source Source, state *taskState) {
 		snap.Data, err = json.Marshal(data)
 	}
 	if err == nil {
-		ttl := 15 * time.Minute
-		if source.Type == "rss" {
-			ttl = 10 * time.Minute
+		ttl := time.Duration(providerDefinitions[source.Type].FreshForSeconds) * time.Second
+		if ttl <= 0 {
+			ttl = 15 * time.Minute
 		}
 		expires := now.Add(ttl)
 		snap.UpdatedAt = &now

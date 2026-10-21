@@ -1,66 +1,14 @@
-export type WidgetType =
-  | "clock"
-  | "calendar"
-  | "rss"
-  | "weather"
-  | "bookmarks"
-  | "note";
-export interface Link {
-  title: string;
-  url: string;
-}
-export interface WidgetConfig {
-  timezone?: string;
-  body?: string;
-  links?: Link[];
-  limit?: number;
-}
-export interface SourceConfig {
-  url?: string;
-  latitude?: number;
-  longitude?: number;
-  location?: string;
-}
-export interface Source {
-  id: string;
-  type: "rss" | "weather";
-  config: SourceConfig;
-}
-export interface Widget {
-  id: string;
-  type: WidgetType;
-  title: string;
-  size: "small" | "wide";
-  sourceId?: string;
-  config: WidgetConfig;
-}
-export interface Board {
-  id: string;
-  title: string;
-  revision: number;
-  theme: "light" | "dark";
-  widgets: Widget[];
-  sources: Source[];
-}
-export interface FeedData {
-  title: string;
-  items: { title: string; url: string; publishedAt?: string }[];
-}
-export interface WeatherData {
-  location: string;
-  temperature: number;
-  feelsLike: number;
-  humidity: number;
-  code: number;
-}
-export interface Snapshot {
-  state: "fresh" | "loading" | "stale" | "error";
-  data?: FeedData | WeatherData;
-  updatedAt?: string;
-  expiresAt?: string;
-  retryAt?: string;
-  error?: string;
-}
+import type { components } from "./generated/api";
+export type Board = components["schemas"]["Board"];
+export type Widget = components["schemas"]["Widget"];
+export type WidgetType = Widget["type"];
+export type Source = components["schemas"]["Source"];
+export type WidgetConfig = components["schemas"]["WidgetConfig"];
+export type SourceConfig = components["schemas"]["SourceConfig"];
+export type Link = components["schemas"]["Link"];
+export type FeedData = components["schemas"]["FeedData"];
+export type WeatherData = components["schemas"]["WeatherData"];
+export type Snapshot = components["schemas"]["Snapshot"];
 
 export class ApiError extends Error {
   constructor(

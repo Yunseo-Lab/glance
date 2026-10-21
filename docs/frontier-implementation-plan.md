@@ -77,7 +77,7 @@ Home Assistant의 카드 경계, dnd-kit/GridStack·TanStack Query의 UI 계약�
 추가하되 상위 ID와 수용 기준을 유지한다. 단계 시작 시 다음 고위험 항목을
 선택 → 구현 → 해당 검사 → 통합 gate → 증거 기록 순서로 진행한다.
 
-상태: **설계 기록 8/80, 신규 제품 구현 0/72**. F001–F008은 이 문서와 조사물로
+계획 작성 시점: **설계 기록 8/80, 신규 제품 구현 0/72**. 최신 진행은 [구현 기록](frontier-progress.md)을 본다. F001–F008은 이 문서와 조사물로
 완료된 조사·설계다. F009부터는 미구현이며 F079–F080은 외부 조건이 필요하다.
 실행 상태의 기계 판독 원장은 [frontier-backlog.json](frontier-backlog.json)이다.
 
