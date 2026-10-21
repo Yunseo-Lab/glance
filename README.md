@@ -1,3 +1,6 @@
+> **개인용 웹 대시보드:** 브라우저에서 위젯을 편집하고 SQLite에 저장하는 새 모드가 추가되었습니다.
+> [사용 방법](docs/editable-dashboard.md) · [맥 미니 배포·복구](docs/operations.md) · [출시 검증 현황](docs/release-readiness.md)
+
 <p align="center"><em>What if you could see everything at a...</em></p>
 <h1 align="center">Glance</h1>
 <p align="center"><a href="#installation">Install</a> • <a href="docs/configuration.md">Configuration</a> • <a href="docs/preconfigured-pages.md">Preconfigured pages</a> • <a href="docs/themes.md">Themes</a> • <a href="https://discord.com/invite/7KQ7Xa9kJd">Discord</a></p>
@@ -141,6 +144,14 @@ pages:
 <br>
 
 ## Installation
+
+### Editable dashboard mode
+
+This fork also includes a browser-editable dashboard with persistent layouts,
+notes, bookmarks, clocks, calendars, RSS and weather widgets. Build the React
+frontend and Go binary, then run `glance dashboard`. See the
+[editable dashboard guide](docs/editable-dashboard.md) for setup, architecture,
+access control and testing. The existing YAML-based mode below is still supported.
 
 Choose one of the following methods:
 
@@ -355,7 +366,7 @@ Choose one of the following methods:
 <summary><strong>Build binary with Go</strong></summary>
 <br>
 
-Requirements: [Go](https://go.dev/dl/) >= v1.23
+Requirements: [Go](https://go.dev/dl/) >= v1.27.3
 
 To build the project for your current OS and architecture, run:
 

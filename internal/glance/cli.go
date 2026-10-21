@@ -33,6 +33,7 @@ func parseCliOptions() (*cliOptions, error) {
 		fmt.Println("  config:validate     Validate the config file")
 		fmt.Println("  config:print        Print the parsed config file with embedded includes")
 		fmt.Println("  diagnose            Run diagnostic checks")
+		fmt.Println("  dashboard           Run the editable dashboard (glance dashboard --help)")
 	}
 	configPath := flags.String("config", "glance.yml", "Set config path")
 	err := flags.Parse(os.Args[1:])

@@ -1,0 +1,44 @@
+name: Dashboard CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: dashboard-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: npm --prefix web ci
+      - run: npm --prefix web run build
+      - run: go mod verify
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go build -o build/glance .
+      - run: cd web && npx playwright install --with-deps chromium
+      - run: npm --prefix web run test:e2e
+      - run: npm --prefix web audit --omit=dev
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+      - run: govulncheck ./...
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-details
+          path: web/test-results/
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.dashboard -t glance-dashboard:ci .
+      - run: bash scripts/container-smoke.sh glance-dashboard:ci

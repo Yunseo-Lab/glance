@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>lab.glance.backup</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>/ABSOLUTE/PATH/glance/scripts/backup-dashboard.sh</string></array>
+  <key>WorkingDirectory</key><string>/ABSOLUTE/PATH/glance</string>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string></dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>/ABSOLUTE/USER/LOGS/glance-backup.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/USER/LOGS/glance-backup-error.log</string>
+</dict></plist>

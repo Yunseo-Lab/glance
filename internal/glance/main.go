@@ -6,11 +6,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/glanceapp/glance/internal/dashboard"
 )
 
 var buildVersion = "dev"
 
 func Main() int {
+	if len(os.Args) > 1 && os.Args[1] == "dashboard" {
+		return dashboard.Run(os.Args[2:])
+	}
 	options, err := parseCliOptions()
 	if err != nil {
 		fmt.Println(err)

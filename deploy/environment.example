@@ -1,0 +1,6 @@
+# Copy to .env at the repository root; these values are not credentials.
+GLANCE_DOMAIN=dashboard.example.com
+GLANCE_PUBLIC_URL=https://dashboard.example.com
+GLANCE_LOCAL_PORT=8090
+GLANCE_IMAGE=glance-dashboard:local
+# GLANCE_DB_PATH=/app/data/dashboard.db

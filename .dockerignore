@@ -9,3 +9,9 @@
 !/go.mod
 !/go.sum
 !main.go
+!/web/
+/web/node_modules/
+/web/test-results/
+/web/playwright-report/
+/internal/dashboard/ui/dist/
+/build/

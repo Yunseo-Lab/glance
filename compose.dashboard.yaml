@@ -1,0 +1,38 @@
+services:
+  dashboard:
+    image: ${GLANCE_IMAGE:-glance-dashboard:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${GLANCE_LOCAL_PORT:-8090}:8080"
+    environment:
+      GLANCE_DASHBOARD_TOKEN_FILE: /run/secrets/owner_password
+      GLANCE_DATABASE_PATH: ${GLANCE_DB_PATH:-/app/data/dashboard.db}
+    secrets:
+      - owner_password
+    volumes:
+      - dashboard_data:/app/data
+      - dashboard_backups:/app/backups
+    command: ["dashboard", "--listen", "0.0.0.0:8080", "--db", "${GLANCE_DB_PATH:-/app/data/dashboard.db}"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+secrets:
+  owner_password:
+    file: ./.secrets/owner_password
+volumes:
+  dashboard_data:
+  dashboard_backups:

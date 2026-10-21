@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Glance editable dashboard
+  version: 0.1.0
+  description: |
+    Single-owner API. When GLANCE_DASHBOARD_TOKEN is configured, private API routes require a session cookie or Basic authentication.
+    Mutation endpoints require a same-origin Origin header. Login assets are public.
+    Layout and source edits are an atomic, revision-checked aggregate update.
+servers:
+  - url: /
+security:
+  - {}
+  - basicAuth: []
+  - ownerSession: []
+paths:
+  /api/v1/auth/session:
+    get:
+      security: []
+      operationId: getOwnerSession
+      responses:
+        '200':
+          description: Authentication enabled/authenticated booleans; no private dashboard data
+  /api/v1/auth/login:
+    post:
+      security: []
+      operationId: loginOwner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Signed, HttpOnly, SameSite=Strict session set; 12 hour expiry
+        '401':
+          description: Invalid password
+        '429':
+          description: Login attempt limit exceeded; retry in 60 seconds
+  /api/v1/auth/logout:
+    post:
+      operationId: logoutOwner
+      responses:
+        '200':
+          description: Current session revoked and cookie cleared
+  /api/readyz:
+    get:
+      operationId: readiness
+      responses:
+        '200':
+          description: Database reachable and embedded UI available
+        '503':
+          description: Database or embedded UI unavailable
+  /api/healthz:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Database reachable
+        '503':
+          description: Database unavailable
+  /api/v1/dashboard:
+    get:
+      operationId: getDashboard
+      responses:
+        '200':
+          description: Current committed dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+    put:
+      operationId: saveDashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Board'
+      responses:
+        '200':
+          description: Committed dashboard with incremented revision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          description: Missing or cross-site Origin
+        '409':
+          description: Revision conflict; preserve local draft and fetch latest
+  /api/v1/dashboard/validate:
+    post:
+      operationId: validateDashboard
+      description: Validate an import preview without saving, fetching data, or advancing revision. Requires a same-origin Origin header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Board'
+      responses:
+        '200':
+          description: Validated dashboard, not persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          description: Missing or cross-site Origin
+  /api/v1/snapshots:
+    get:
+      operationId: getSnapshots
+      responses:
+        '200':
+          description: |
+            Immediate map from source ID to cached snapshot. Reading expired
+            sources schedules bounded asynchronous refresh; it never waits for
+            provider requests. Loading/error states may have no data.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Snapshot'
+components:
+  securitySchemes:
+    ownerSession:
+      type: apiKey
+      in: cookie
+      name: glance_session
+    basicAuth:
+      type: http
+      scheme: basic
+  responses:
+    ValidationError:
+      description: Invalid dashboard, widget or source
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    Board:
+      type: object
+      additionalProperties: false
+      required: [id, title, revision, theme, widgets, sources]
+      properties:
+        id:
+          type: string
+          enum: [home]
+        title:
+          type: string
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+        theme:
+          type: string
+          enum: [light, dark]
+        widgets:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Widget'
+        sources:
+          type: array
+          maxItems: 32
+          items:
+            $ref: '#/components/schemas/Source'
+    Widget:
+      type: object
+      additionalProperties: false
+      required: [id, type, title, size, config]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [clock, calendar, note, bookmarks, rss, weather]
+        title:
+          type: string
+        size:
+          type: string
+          enum: [small, wide]
+        sourceId:
+          type: string
+          description: Required for RSS/weather; must reference a source of the same type
+        config:
+          type: object
+          description: |
+            clock: {timezone: IANA name}; note: {body: text};
+            bookmarks: {links: [{title, url: HTTPS URL}]};
+            rss: {limit: integer 1..20}; calendar/weather: {}.
+            Unknown configuration fields are rejected by the server.
+    Source:
+      type: object
+      additionalProperties: false
+      required: [id, type, config]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [rss, weather]
+        config:
+          type: object
+          description: |
+            rss: {url: public HTTPS feed URL on port 443};
+            weather: {latitude: number -90..90, longitude: number -180..180,
+            location: display name}. Credentials and private destinations are unsupported.
+    Snapshot:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [loading, fresh, stale, error]
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        retryAt:
+          type: string
+          format: date-time
+        error:
+          type: string
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/FeedData'
+            - $ref: '#/components/schemas/WeatherData'
+    FeedData:
+      type: object
+      required: [title, items]
+      properties:
+        title:
+          type: string
+        items:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            required: [title, url]
+            properties:
+              title:
+                type: string
+              url:
+                type: string
+                format: uri
+              publishedAt:
+                type: string
+                format: date-time
+    WeatherData:
+      type: object
+      required: [location, temperature, feelsLike, humidity, code]
+      properties:
+        location:
+          type: string
+        temperature:
+          type: number
+        feelsLike:
+          type: number
+        humidity:
+          type: integer
+        code:
+          type: integer
