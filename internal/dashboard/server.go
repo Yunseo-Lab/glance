@@ -44,32 +44,42 @@ func apiError(w http.ResponseWriter, status int, message string) {
 }
 
 // Validation previews share commit validation without touching storage or providers.
-func readBoardRequest(w http.ResponseWriter, r *http.Request) (Board, bool) {
-	var b Board
+func readMutation(w http.ResponseWriter, r *http.Request, dst any) bool {
 	origin, err := url.Parse(r.Header.Get("Origin"))
 	if err != nil || origin.Host != r.Host || (origin.Scheme != "https" && origin.Scheme != "http") || r.Header.Get("Sec-Fetch-Site") == "cross-site" {
 		apiError(w, 403, "같은 사이트에서만 설정을 처리할 수 있습니다")
-		return b, false
+		return false
 	}
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" {
 		apiError(w, 415, "JSON 요청이 필요합니다")
-		return b, false
+		return false
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxBoardBody)
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
-	if err = decoder.Decode(&b); err != nil {
+	if err = decoder.Decode(dst); err != nil {
 		apiError(w, 400, "올바른 대시보드 JSON을 입력하세요")
-		return b, false
+		return false
 	}
 	var extra any
 	if decoder.Decode(&extra) != io.EOF {
 		apiError(w, 400, "요청 본문은 JSON 하나여야 합니다")
+		return false
+	}
+	return true
+}
+func readBoardRequest(w http.ResponseWriter, r *http.Request) (Board, bool) {
+	var b Board
+	if !readMutation(w, r, &b) {
 		return b, false
 	}
-	if err = b.Validate(); err != nil {
+	if b.ID != "home" {
+		apiError(w, 400, "기본 대시보드 ID가 필요합니다")
+		return b, false
+	}
+	if err := b.Validate(); err != nil {
 		apiError(w, 400, err.Error())
 		return b, false
 	}
@@ -81,6 +91,8 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 	service := &DashboardService{store: store, runtime: runtime}
 	auth := newOwnerAuth(token)
 	auth.register(mux)
+	registerBoardRoutes(mux, service)
+	mux.HandleFunc("GET /api/v1/limits", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Limits()) })
 	mux.HandleFunc("GET /api/v1/catalog", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Catalog()) })
 	mux.HandleFunc("GET /api/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := store.db.PingContext(r.Context()); err != nil {

@@ -13,6 +13,97 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/limits:
+    get:
+      operationId: getCapacityLimits
+      responses:
+        '200':
+          description: Owner instance capacity policy
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+  /api/v1/boards:
+    get:
+      operationId: listBoards
+      responses:
+        '200':
+          description: Owner-scoped boards, default board first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+    post:
+      operationId: createBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                cloneFrom:
+                  type: string
+      responses:
+        '201':
+          description: New board with revision 1; at most 10 owner boards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+  /api/v1/boards/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getBoard
+      responses:
+        '200':
+          description: Owner board
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+    put:
+      operationId: updateBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Board'
+      responses:
+        '200':
+          description: Atomically saved board; ID must match the route and revision must be current
+        '409':
+          description: Revision conflict
+    delete:
+      operationId: deleteBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision]
+              properties:
+                revision:
+                  type: integer
+      responses:
+        '200':
+          description: Board deleted; home is protected
+        '409':
+          description: Revision conflict
   /api/v1/catalog:
     get:
       operationId: getCatalog
@@ -186,7 +277,7 @@ components:
       properties:
         id:
           type: string
-          enum: [home]
+          description: Stable board identifier; home is the backward-compatible default.
         title:
           type: string
         revision:

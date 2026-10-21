@@ -56,18 +56,52 @@ func verifyDatabase(path string) error {
 	if err = db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version != 1 {
+	if version < 1 || version > schemaVersion() {
 		return fmt.Errorf("unsupported database version %d", version)
 	}
-	var data []byte
-	if err = db.QueryRowContext(ctx, "SELECT document FROM boards WHERE id='home' AND owner_id='local'").Scan(&data); err != nil {
+	rows, err := db.QueryContext(ctx, "SELECT document FROM boards WHERE owner_id='local'")
+	if err != nil {
 		return err
 	}
-	var b Board
-	if err = json.Unmarshal(data, &b); err != nil {
+	foundHome := false
+	for rows.Next() {
+		var data []byte
+		if err = rows.Scan(&data); err != nil {
+			rows.Close()
+			return err
+		}
+		if len(data) > MaxBoardBody {
+			rows.Close()
+			return errors.New("board document exceeds limit")
+		}
+		var board Board
+		if err = json.Unmarshal(data, &board); err != nil {
+			rows.Close()
+			return err
+		}
+		if err = board.Validate(); err != nil {
+			rows.Close()
+			return err
+		}
+		foundHome = foundHome || board.ID == "home"
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
 		return err
 	}
-	return b.Validate()
+	if !foundHome {
+		return errors.New("default board missing")
+	}
+	rows, err = db.QueryContext(ctx, "PRAGMA foreign_key_check")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		return errors.New("database contains broken references")
+	}
+	return rows.Err()
 }
 
 // An exclusive link prevents overwrites even if the output is created mid-backup.

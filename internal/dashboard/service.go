@@ -15,10 +15,7 @@ type DashboardService struct {
 }
 
 func (s *DashboardService) Board(id string) (Board, error) {
-	if id != "home" {
-		return Board{}, ErrNotFound
-	}
-	return s.store.Board()
+	return s.store.GetBoard(id)
 }
 func (s *DashboardService) Commit(board Board) (Board, error) {
 	saved, err := s.store.Save(board)

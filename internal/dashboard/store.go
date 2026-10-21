@@ -8,13 +8,17 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var ErrConflict = errors.New("다른 창에서 대시보드가 변경되었습니다. 새로고침 후 다시 편집하세요")
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db   *sql.DB
+	path string
+}
 
 func OpenStore(path string) (*Store, error) {
 	abs, err := filepath.Abs(path)
@@ -32,13 +36,13 @@ func OpenStore(path string) (*Store, error) {
 	if err = f.Close(); err != nil {
 		return nil, err
 	}
-	u := url.URL{Scheme: "file", Path: abs, RawQuery: "_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on"}
+	u := url.URL{Scheme: "file", Path: abs, RawQuery: "_busy_timeout=5000&_foreign_keys=on"}
 	db, err := sql.Open("sqlite3", u.String())
 	if err != nil {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	s := &Store{db: db}
+	s := &Store{db: db, path: abs}
 	if err = s.init(); err != nil {
 		db.Close()
 		return nil, err
@@ -51,42 +55,45 @@ func (s *Store) init() error {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 1 {
+	if version < 0 || version > schemaVersion() {
 		return fmt.Errorf("unsupported database version %d", version)
+	}
+	if version > 0 && version < schemaVersion() {
+		backup := fmt.Sprintf("%s.before-v%d-%s.db", s.path, schemaVersion(), time.Now().UTC().Format("20060102T150405.000000000"))
+		if err := backupDatabase(s.path, backup); err != nil {
+			return fmt.Errorf("pre-migration backup failed: %w", err)
+		}
+	}
+	if _, err := s.db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return err
+	}
+	if err := applyMigrations(s.db, migrations); err != nil {
+		return err
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	_, err = tx.Exec(`CREATE TABLE IF NOT EXISTS boards(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,revision INTEGER NOT NULL,document BLOB NOT NULL);
-CREATE TABLE IF NOT EXISTS snapshots(cache_key TEXT PRIMARY KEY,document BLOB NOT NULL);
-PRAGMA user_version=1;`)
-	if err != nil {
-		return err
-	}
 	b := defaultBoard()
 	data, err := json.Marshal(b)
 	if err != nil {
 		return err
 	}
-	if _, err = tx.Exec("INSERT OR IGNORE INTO boards VALUES(?,?,?,?)", b.ID, "local", b.Revision, data); err != nil {
+	result, err := tx.Exec("INSERT OR IGNORE INTO boards(id,owner_id,revision,document) VALUES(?,?,?,?)", b.ID, "local", b.Revision, data)
+	if err != nil {
 		return err
+	}
+	if n, _ := result.RowsAffected(); n == 1 {
+		if err = replaceSourceRefs(tx, b.ID, b.Sources); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
 
-func (s *Store) Close() error { return s.db.Close() }
-func (s *Store) Board() (Board, error) {
-	var b Board
-	var data []byte
-	err := s.db.QueryRow("SELECT document FROM boards WHERE id='home' AND owner_id='local'").Scan(&data)
-	if err != nil {
-		return b, err
-	}
-	err = json.Unmarshal(data, &b)
-	return b, err
-}
+func (s *Store) Close() error          { return s.db.Close() }
+func (s *Store) Board() (Board, error) { return s.GetBoard("home") }
 func (s *Store) Save(b Board) (Board, error) {
 	if err := b.Validate(); err != nil {
 		return b, err
@@ -97,19 +104,38 @@ func (s *Store) Save(b Board) (Board, error) {
 	if err != nil {
 		return b, err
 	}
-	res, err := s.db.Exec("UPDATE boards SET revision=?,document=? WHERE id=? AND owner_id='local' AND revision=?", b.Revision, data, b.ID, expected)
+	tx, err := s.db.Begin()
 	if err != nil {
 		return b, err
 	}
-	n, err := res.RowsAffected()
+	defer tx.Rollback()
+	result, err := tx.Exec("UPDATE boards SET revision=?,document=? WHERE id=? AND owner_id='local' AND revision=?", b.Revision, data, b.ID, expected)
+	if err != nil {
+		return b, err
+	}
+	n, err := result.RowsAffected()
 	if err != nil {
 		return b, err
 	}
 	if n != 1 {
+		var count int
+		if err = tx.QueryRow("SELECT count(*) FROM boards WHERE id=? AND owner_id='local'", b.ID).Scan(&count); err != nil {
+			return b, err
+		}
+		if count == 0 {
+			return b, ErrNotFound
+		}
 		return b, ErrConflict
+	}
+	if err = replaceSourceRefs(tx, b.ID, b.Sources); err != nil {
+		return b, err
+	}
+	if err = tx.Commit(); err != nil {
+		return b, err
 	}
 	return b, nil
 }
+
 func (s *Store) snapshot(key string) (Snapshot, error) {
 	var snap Snapshot
 	var data []byte
@@ -134,7 +160,15 @@ func (s *Store) putSnapshot(key string, snap Snapshot) error {
 
 // Source configurations are public in this first, single-owner release.
 // On save, discard orphaned caches so deleted feeds do not accumulate forever.
-func (s *Store) pruneSnapshots(sources []Source) error {
+func (s *Store) pruneSnapshots(_ []Source) error {
+	boards, err := s.Boards()
+	if err != nil {
+		return err
+	}
+	sources := []Source{}
+	for _, board := range boards {
+		sources = append(sources, board.Sources...)
+	}
 	keys := map[string]bool{}
 	for _, source := range sources {
 		keys[sourceKey(source)] = true

@@ -154,7 +154,7 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("provider returned HTTP %d", res.StatusCode)
 	}
-	const maxBody = 2 << 20
+	const maxBody = MaxProviderBody
 	data, err := io.ReadAll(io.LimitReader(res.Body, maxBody+1))
 	if len(data) > maxBody {
 		return nil, errors.New("provider response exceeds 2 MiB")

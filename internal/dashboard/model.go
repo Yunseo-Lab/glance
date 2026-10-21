@@ -120,13 +120,13 @@ func publicURL(value string) (*url.URL, error) {
 }
 
 func (b Board) Validate() error {
-	if b.ID != "home" || b.Revision < 1 || len(strings.TrimSpace(b.Title)) == 0 || len(b.Title) > 120 {
+	if !validID(b.ID) || b.Revision < 1 || len(strings.TrimSpace(b.Title)) == 0 || len(b.Title) > 120 {
 		return errors.New("대시보드 이름 또는 버전이 올바르지 않습니다")
 	}
 	if b.Theme != "light" && b.Theme != "dark" {
 		return errors.New("지원하지 않는 테마입니다")
 	}
-	if b.Widgets == nil || b.Sources == nil || len(b.Widgets) > 32 || len(b.Sources) > 32 {
+	if b.Widgets == nil || b.Sources == nil || len(b.Widgets) > MaxWidgets || len(b.Sources) > MaxBoardSources {
 		return errors.New("위젯과 데이터 소스는 최대 32개입니다")
 	}
 	sources := map[string]Source{}

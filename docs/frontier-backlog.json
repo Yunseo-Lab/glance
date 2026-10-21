@@ -245,11 +245,14 @@
       "depends_on": [
         "F012"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/migrations_test.go"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-21T22:51:20+00:00",
-      "progress_note": "기존 DB의 자동 사전 백업·순차 migration·checksum·실패 rollback과 미래 버전 거부를 구현한다.",
+      "updated_at": "2026-10-21T22:52:28+00:00",
+      "progress_note": "v1 설정·캐시 보존, 업그레이드 전 검증된 backup, migration 반복/rollback/checksum/future-version 검증 통과.",
       "started_at": "2026-10-21T22:51:20+00:00"
     },
     {
@@ -261,9 +264,16 @@
       "depends_on": [
         "F013"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "npm --prefix web run build: PASS",
+        "internal/dashboard/boards_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:54:21+00:00",
+      "progress_note": "복수 보드 CRUD·복제·owner 격리·CAS 저장/삭제·동시 10보드 제한·다른 보드 cache 보존과 home API 호환 검사 통과.",
+      "started_at": "2026-10-21T22:52:28+00:00"
     },
     {
       "id": "F015",
@@ -274,9 +284,15 @@
       "depends_on": [
         "F014"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/sources_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:55:52+00:00",
+      "progress_note": "source 공유·참조 제약·충돌 저장 rollback·읽음/저장 상태 분리·모호한 기존 데이터 migration rollback 검사 통과.",
+      "started_at": "2026-10-21T22:54:21+00:00"
     },
     {
       "id": "F016",
@@ -287,9 +303,18 @@
       "depends_on": [
         "F015"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./... and go vet ./...: PASS",
+        "contracts:check and production build: PASS",
+        "legacy config:validate: PASS",
+        "Playwright: 16 passed",
+        "docs/capacity-policy.md"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:58:18+00:00",
+      "progress_note": "G1 통과: 보드/소스 원자적 한도·owner index query plan·v1 migration·전체 보드 backup/restore·계약·race/vet·YAML·기존 E2E 검증.",
+      "started_at": "2026-10-21T22:55:52+00:00"
     },
     {
       "id": "F017",
@@ -300,9 +325,12 @@
       "depends_on": [
         "F016"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T22:58:18+00:00",
+      "progress_note": "snapshot 오류 분류·최종 성공·다음 재시도 정보를 일관된 결과 envelope로 확장한다.",
+      "started_at": "2026-10-21T22:58:18+00:00"
     },
     {
       "id": "F018",
