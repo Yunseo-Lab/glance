@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-21T23:28:23+00:00
+최근 기록: 2026-10-21T23:45:29+00:00
 
-조사·설계 8/8 · 신규 구현 검증 24/72 · 진행 중 1 · 예정 45 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 30/72 · 진행 중 1 · 예정 39 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -57,3 +57,15 @@
 | 2026-10-21T23:24:20+00:00 | F032 | in_progress | 삭제·철회·source orphan·90일 보관·export/log redaction과 G2 보안 통합 검증을 마무리한다. |
 | 2026-10-21T23:28:22+00:00 | F032 | verified | G2 통과: saved entry를 보존하는 90일 retention·삭제/철회·key/DB rollback·SSRF/XXE/fuzz·API 전수 계약·race/vet·브라우저 18개. Go/npm 알려진 취약점 발견 0. |
 | 2026-10-21T23:28:23+00:00 | F033 | in_progress | 복수 보드·소스·읽기·설정의 navigation shell과 직접 URL·뒤로 가기·빈 상태를 구현한다. |
+| 2026-10-21T23:33:19+00:00 | F033 | verified | 복수 보드 direct URL·모바일 탐색·소스/읽기/설정 화면·뒤로 가기·새로고침 context·404 복구와 기존 시나리오 검증. |
+| 2026-10-21T23:33:20+00:00 | F034 | in_progress | 외부 API 키 없이 시작하는 일상·개발·소식 템플릿과 첫 위젯 안내를 구현한다. |
+| 2026-10-21T23:35:22+00:00 | F034 | verified | 키 없는 3개 템플릿·off-line 일상 설정·preview 비저장·명시적 저장/재시작 유지와 navigation 검증 통과. |
+| 2026-10-21T23:35:22+00:00 | F035 | in_progress | 위젯 catalog 검색·필요 연결·미리보기·지원 범위와 추가 흐름을 editor에 통합한다. |
+| 2026-10-21T23:38:10+00:00 | F035 | verified | catalog 검색·로컬/외부 분류·필요 연결 설명·native 선택·저장 전 비수집 preview와 빈 검색 상태 검증 통과. |
+| 2026-10-21T23:38:10+00:00 | F036 | in_progress | 필드별 오류·focus·일관된 도움말과 preview/cancel 비저장 동작을 검증한다. |
+| 2026-10-21T23:39:50+00:00 | F036 | verified | 설정 builder를 preview/submit이 공유하고 필드 오류 aria-invalid/describedby/focus·취소 비저장·기존 편집 10개 회귀를 검증했다. |
+| 2026-10-21T23:39:50+00:00 | F037 | in_progress | 모든 remote 위젯의 loading/empty/stale/error/paused·최종 성공·다음 시도·원문 규칙을 공통 상태 표현으로 통합한다. |
+| 2026-10-21T23:42:25+00:00 | F037 | verified | 공통 SourcePresentation으로 loading/empty/stale/error/paused·원인/재시도·최종 성공·persistent manual cooldown을 통합하고 상태 fixture를 검증했다. |
+| 2026-10-21T23:42:25+00:00 | F038 | in_progress | Ctrl/Meta+K 명령 팔레트·보드/화면 이동·위젯 추가와 IME/입력 중 단축키 안전성을 구현한다. |
+| 2026-10-21T23:45:29+00:00 | F038 | verified | Ctrl/Meta+K·검색/Enter/화면 이동·위젯 추가·slash 검색과 IME/기존 modal 입력 충돌 방지를 브라우저에서 검증. |
+| 2026-10-21T23:45:29+00:00 | F039 | in_progress | 연결 추가·권한 테스트·철회·삭제·소스 일시정지/갱신/참조 보드 이동을 관리 화면에 연결한다. |

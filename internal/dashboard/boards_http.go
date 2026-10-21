@@ -137,11 +137,24 @@ func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
 		var input struct {
 			Title     string `json:"title"`
 			CloneFrom string `json:"cloneFrom,omitempty"`
+			Template  string `json:"template,omitempty"`
 		}
 		if !readMutation(w, r, &input) {
 			return
 		}
 		var template *Board
+		if input.Template != "" {
+			if input.CloneFrom != "" {
+				serviceError(w, ErrInvalidInput)
+				return
+			}
+			board, err := templateBoard(input.Template)
+			if err != nil {
+				serviceError(w, err)
+				return
+			}
+			template = &board
+		}
 		if input.CloneFrom != "" {
 			board, err := service.Board(input.CloneFrom)
 			if err != nil {

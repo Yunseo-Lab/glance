@@ -643,11 +643,15 @@
         "F024",
         "F032"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "production build: PASS",
+        "Playwright: 20 passed",
+        "web/e2e/workspace.spec.ts"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-21T23:28:23+00:00",
-      "progress_note": "복수 보드·소스·읽기·설정의 navigation shell과 직접 URL·뒤로 가기·빈 상태를 구현한다.",
+      "updated_at": "2026-10-21T23:33:19+00:00",
+      "progress_note": "복수 보드 direct URL·모바일 탐색·소스/읽기/설정 화면·뒤로 가기·새로고침 context·404 복구와 기존 시나리오 검증.",
       "started_at": "2026-10-21T23:28:23+00:00"
     },
     {
@@ -659,9 +663,17 @@
       "depends_on": [
         "F033"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "production build: PASS",
+        "Playwright workspace.spec.ts: 3 passed",
+        "internal/dashboard/templates_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:35:22+00:00",
+      "progress_note": "키 없는 3개 템플릿·off-line 일상 설정·preview 비저장·명시적 저장/재시작 유지와 navigation 검증 통과.",
+      "started_at": "2026-10-21T23:33:20+00:00"
     },
     {
       "id": "F035",
@@ -672,9 +684,17 @@
       "depends_on": [
         "F034"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "production build: PASS",
+        "Playwright catalog.spec.ts: 1 passed",
+        "web/src/workspace/WidgetCatalog.tsx",
+        "web/src/workspace/WidgetPreview.tsx"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:38:10+00:00",
+      "progress_note": "catalog 검색·로컬/외부 분류·필요 연결 설명·native 선택·저장 전 비수집 preview와 빈 검색 상태 검증 통과.",
+      "started_at": "2026-10-21T23:35:22+00:00"
     },
     {
       "id": "F036",
@@ -685,9 +705,16 @@
       "depends_on": [
         "F035"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "production build: PASS",
+        "Playwright catalog+cycles: 12 passed",
+        "web/e2e/catalog.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:39:50+00:00",
+      "progress_note": "설정 builder를 preview/submit이 공유하고 필드 오류 aria-invalid/describedby/focus·취소 비저장·기존 편집 10개 회귀를 검증했다.",
+      "started_at": "2026-10-21T23:38:10+00:00"
     },
     {
       "id": "F037",
@@ -698,9 +725,17 @@
       "depends_on": [
         "F036"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "production build: PASS",
+        "Playwright runtime.spec.ts: 3 passed",
+        "web/src/workspace/SourcePresentation.tsx"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:42:25+00:00",
+      "progress_note": "공통 SourcePresentation으로 loading/empty/stale/error/paused·원인/재시도·최종 성공·persistent manual cooldown을 통합하고 상태 fixture를 검증했다.",
+      "started_at": "2026-10-21T23:39:50+00:00"
     },
     {
       "id": "F038",
@@ -711,9 +746,16 @@
       "depends_on": [
         "F037"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "production build: PASS",
+        "Playwright catalog.spec.ts: 3 passed",
+        "web/src/workspace/CommandPalette.tsx"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:45:29+00:00",
+      "progress_note": "Ctrl/Meta+K·검색/Enter/화면 이동·위젯 추가·slash 검색과 IME/기존 modal 입력 충돌 방지를 브라우저에서 검증.",
+      "started_at": "2026-10-21T23:42:25+00:00"
     },
     {
       "id": "F039",
@@ -724,9 +766,12 @@
       "depends_on": [
         "F038"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:45:29+00:00",
+      "progress_note": "연결 추가·권한 테스트·철회·삭제·소스 일시정지/갱신/참조 보드 이동을 관리 화면에 연결한다.",
+      "started_at": "2026-10-21T23:45:29+00:00"
     },
     {
       "id": "F040",

@@ -81,7 +81,7 @@ func TestEveryRegisteredAPIHasAnOpenAPIContract(t *testing.T) {
 	if err = yaml.Unmarshal(data, &document); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"server.go", "auth.go", "boards_http.go", "connections_http.go"} {
+	for _, path := range []string{"server.go", "auth.go", "boards_http.go", "connections_http.go", "templates.go"} {
 		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
 		if err != nil {
 			t.Fatal(err)

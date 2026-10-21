@@ -92,6 +92,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 	auth.register(mux)
 	registerBoardRoutes(mux, service)
 	registerConnectionRoutes(mux, service)
+	registerTemplateRoutes(mux)
 	mux.HandleFunc("GET /api/v1/limits", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Limits()) })
 	mux.HandleFunc("GET /api/v1/catalog", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Catalog()) })
 	mux.HandleFunc("GET /api/readyz", func(w http.ResponseWriter, r *http.Request) {

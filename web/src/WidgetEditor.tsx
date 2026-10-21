@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import type { Link, Source, Widget, WidgetType } from "./types";
-import { validateWidget } from "./validation";
+import { validateWidget, validateWidgetDetail } from "./validation";
 
+import WidgetPreview from "./workspace/WidgetPreview";
+import WidgetCatalog from "./workspace/WidgetCatalog";
 import { labels } from "./catalog";
 
 export default function WidgetEditor({
@@ -37,24 +39,21 @@ export default function WidgetEditor({
     String(source?.config.longitude ?? 126.978),
   );
   const [error, setError] = useState("");
+  const [errorField, setErrorField] = useState("");
+  const fieldProps = (field: string) => ({
+    "data-field": field,
+    "aria-invalid": errorField === field || undefined,
+    "aria-describedby": errorField === field ? "editor-error" : undefined,
+  });
 
   useEffect(() => {
     dialog.current?.showModal();
+ dialog.current?.querySelector<HTMLInputElement>("input")?.focus();
   }, []);
-  function submit(event: React.SubmitEvent) {
-    event.preventDefault();
-    setError("");
-    if (type === "clock") {
-      try {
-        new Intl.DateTimeFormat("ko", { timeZone: timezone });
-      } catch {
-        setError("시간대를 확인하세요. 예: Asia/Seoul");
-        return;
-      }
-    }
+  function buildDraft(commit = false) {
     const next: Widget = {
       configVersion: 1,
-      id: widget?.id || crypto.randomUUID(),
+      id: widget?.id || (commit ? crypto.randomUUID() : "preview"),
       type,
       title: title.trim(),
       size,
@@ -76,8 +75,8 @@ export default function WidgetEditor({
         type === "rss"
           ? { url: url.trim() }
           : {
-              latitude: Number(latitude),
-              longitude: Number(longitude),
+              latitude: latitude.trim() === "" ? NaN : Number(latitude),
+              longitude: longitude.trim() === "" ? NaN : Number(longitude),
               location: location.trim(),
             };
       // Changing a shared source creates a new source; other widgets stay intact.
@@ -86,15 +85,34 @@ export default function WidgetEditor({
         JSON.stringify(source.config) === JSON.stringify(config);
       nextSource = {
         configVersion: 1,
-        id: unchanged ? source.id : crypto.randomUUID(),
+        id: unchanged
+          ? source.id
+          : commit
+            ? crypto.randomUUID()
+            : "preview-source",
         type,
         config,
       };
       next.sourceId = nextSource.id;
     }
-    const validationError = validateWidget(next, nextSource);
+    return { widget: next, source: nextSource };
+  }
+  const preview = buildDraft();
+  function submit(event: React.SubmitEvent) {
+    event.preventDefault();
+    setError("");
+    const { widget: next, source: nextSource } = buildDraft(true);
+    const validationError = validateWidgetDetail(next, nextSource);
     if (validationError) {
-      setError(validationError);
+      setError(validationError.message);
+      setErrorField(validationError.field);
+      requestAnimationFrame(() =>
+        dialog.current
+          ?.querySelector<HTMLElement>(
+            `[data-field="${CSS.escape(validationError.field)}"]`,
+          )
+          ?.focus(),
+      );
       return;
     }
     onSave(next, nextSource);
@@ -108,7 +126,14 @@ export default function WidgetEditor({
       }}
       aria-labelledby="editor-title"
     >
-      <form onSubmit={submit}>
+      <form
+        noValidate
+        onSubmit={submit}
+        onChange={() => {
+          setError("");
+          setErrorField("");
+        }}
+      >
         <div className="dialog-header">
           <div>
             <span className="eyebrow">MAKE IT YOURS</span>
@@ -124,9 +149,19 @@ export default function WidgetEditor({
           </button>
         </div>
         {!widget && (
+          <WidgetCatalog
+            type={type}
+            onSelect={(next) => {
+              setType(next);
+              setTitle(labels[next]);
+            }}
+          />
+        )}
+        {!widget && (
           <label>
             위젯 종류
             <select
+              aria-label="위젯 종류"
               value={type}
               onChange={(event) => {
                 const t = event.target.value as WidgetType;
@@ -146,6 +181,8 @@ export default function WidgetEditor({
           <label>
             제목
             <input
+              {...fieldProps("title")}
+              aria-label="제목"
               required
               maxLength={30}
               value={title}
@@ -169,6 +206,8 @@ export default function WidgetEditor({
           <label>
             시간대
             <input
+              {...fieldProps("timezone")}
+              aria-label="시간대"
               required
               value={timezone}
               onChange={(event) => setTimezone(event.target.value)}
@@ -186,6 +225,8 @@ export default function WidgetEditor({
                 type="url"
                 pattern="https://.*"
                 maxLength={2048}
+                {...fieldProps("url")}
+                aria-label="RSS / Atom 주소"
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
                 placeholder="https://example.com/feed.xml"
@@ -199,6 +240,8 @@ export default function WidgetEditor({
                 type="number"
                 min={1}
                 max={20}
+                {...fieldProps("limit")}
+                aria-label="표시할 소식 수"
                 value={limit}
                 onChange={(event) => setLimit(Number(event.target.value))}
               />
@@ -212,6 +255,8 @@ export default function WidgetEditor({
               <input
                 required
                 maxLength={30}
+                {...fieldProps("location")}
+                aria-label="지역 이름"
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
               />
@@ -225,6 +270,8 @@ export default function WidgetEditor({
                   step="any"
                   min={-90}
                   max={90}
+                  {...fieldProps("latitude")}
+                  aria-label="위도"
                   value={latitude}
                   onChange={(event) => setLatitude(event.target.value)}
                 />
@@ -237,6 +284,8 @@ export default function WidgetEditor({
                   step="any"
                   min={-180}
                   max={180}
+                  {...fieldProps("longitude")}
+                  aria-label="경도"
                   value={longitude}
                   onChange={(event) => setLongitude(event.target.value)}
                 />
@@ -251,6 +300,8 @@ export default function WidgetEditor({
           <div className="form-field">
             <label htmlFor="note-body">내용</label>
             <textarea
+              {...fieldProps("body")}
+              aria-label="내용"
               id="note-body"
               rows={7}
               maxLength={4000}
@@ -261,7 +312,7 @@ export default function WidgetEditor({
           </div>
         )}
         {type === "bookmarks" && (
-          <fieldset>
+          <fieldset {...fieldProps("links")} tabIndex={-1}>
             <legend>즐겨찾기</legend>
             {links.map((link, i) => (
               <div className="link-fields" key={i}>
@@ -269,6 +320,7 @@ export default function WidgetEditor({
                   즐겨찾기 {i + 1} 이름
                 </label>
                 <input
+                  {...fieldProps(`links.${i}.title`)}
                   id={`link-title-${i}`}
                   required
                   maxLength={30}
@@ -286,6 +338,7 @@ export default function WidgetEditor({
                   즐겨찾기 {i + 1} 주소
                 </label>
                 <input
+                  {...fieldProps(`links.${i}.url`)}
                   id={`link-url-${i}`}
                   required
                   type="url"
@@ -326,8 +379,12 @@ export default function WidgetEditor({
             있습니다.
           </p>
         )}
+        <WidgetPreview
+          widget={preview.widget}
+          invalid={Boolean(validateWidget(preview.widget, preview.source))}
+        />
         {error && (
-          <p className="error-text" role="alert">
+          <p id="editor-error" className="error-text" role="alert">
             {error}
           </p>
         )}

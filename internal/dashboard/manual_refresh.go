@@ -100,3 +100,16 @@ func (s *Store) RequestRefresh(id string, now time.Time) (Source, RefreshReceipt
 	}
 	return source, RefreshReceipt{Accepted: true, NextAllowedAt: nextAllowed}, nil
 }
+
+func (s *Store) nextManualRefresh(key string) (*time.Time, error) {
+	var until int64
+	err := s.db.QueryRow("SELECT manual_next_allowed FROM refresh_jobs WHERE cache_key=?", key).Scan(&until)
+	if errors.Is(err, sql.ErrNoRows) || err == nil && until <= 0 {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	date := time.Unix(0, until)
+	return &date, nil
+}

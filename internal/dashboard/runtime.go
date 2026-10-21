@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,14 +13,15 @@ import (
 )
 
 type Snapshot struct {
-	ErrorCode   string          `json:"errorCode,omitempty"`
-	AttemptedAt *time.Time      `json:"attemptedAt,omitempty"`
-	Data        json.RawMessage `json:"data,omitempty"`
-	State       string          `json:"state"`
-	UpdatedAt   *time.Time      `json:"updatedAt,omitempty"`
-	ExpiresAt   *time.Time      `json:"expiresAt,omitempty"`
-	RetryAt     *time.Time      `json:"retryAt,omitempty"`
-	Error       string          `json:"error,omitempty"`
+	ManualRefreshAfter *time.Time      `json:"manualRefreshAfter,omitempty"`
+	ErrorCode          string          `json:"errorCode,omitempty"`
+	AttemptedAt        *time.Time      `json:"attemptedAt,omitempty"`
+	Data               json.RawMessage `json:"data,omitempty"`
+	State              string          `json:"state"`
+	UpdatedAt          *time.Time      `json:"updatedAt,omitempty"`
+	ExpiresAt          *time.Time      `json:"expiresAt,omitempty"`
+	RetryAt            *time.Time      `json:"retryAt,omitempty"`
+	Error              string          `json:"error,omitempty"`
 }
 
 type FetchFunc func(context.Context, Source) (any, error)
@@ -231,6 +233,9 @@ func (r *Runtime) refresh(ctx context.Context, key string, source Source, state 
 
 	if err == nil {
 		snap.Data, err = json.Marshal(data)
+		if err == nil && (len(snap.Data) == 0 || bytes.Equal(snap.Data, []byte("null"))) {
+			err = &ProviderError{Code: "invalid_response"}
+		}
 	}
 	if err == nil {
 		ttl := time.Duration(providerDefinitions[source.Type].FreshForSeconds) * time.Second

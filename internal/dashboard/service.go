@@ -42,6 +42,10 @@ func (s *DashboardService) Snapshots(id string) (map[string]Snapshot, error) {
 		if err != nil {
 			return nil, err
 		}
+		snapshot.ManualRefreshAfter, err = s.store.nextManualRefresh(sourceKey(source))
+		if err != nil {
+			return nil, err
+		}
 		out[source.ID] = snapshot
 	}
 	return out, nil

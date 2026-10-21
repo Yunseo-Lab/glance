@@ -13,6 +13,34 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/templates:
+    get:
+      operationId: listTemplates
+      responses:
+        '200':
+          description: Key-free starter templates with explicit network requirements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+  /api/v1/templates/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: previewTemplate
+      responses:
+        '200':
+          description: New widget/source identities for a preview board; does not persist or fetch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
   /api/v1/connections:
     get:
       operationId: listConnections
@@ -231,6 +259,9 @@ paths:
                   type: string
                 cloneFrom:
                   type: string
+                template:
+                  type: string
+                  description: Starter template ID; mutually exclusive with cloneFrom
       responses:
         '201':
           description: New board with revision 1; at most 10 owner boards
@@ -558,6 +589,9 @@ components:
       type: object
       required: [state]
       properties:
+        manualRefreshAfter:
+          type: string
+          format: date-time
         errorCode:
           type: string
           description: Safe provider error class; contains no remote body, URL or credential
@@ -701,3 +735,16 @@ components:
         nextManualAt:
           type: string
           format: date-time
+
+    Template:
+      type: object
+      required: [id, title, description, requiresNetwork]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        requiresNetwork:
+          type: boolean

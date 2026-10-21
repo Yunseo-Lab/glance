@@ -1,5 +1,39 @@
 // Generated from docs/dashboard-api.openapi.yaml; do not edit.
 export interface paths {
+    "/api/v1/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get: operations["previewTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/connections": {
         parameters: {
             query?: never;
@@ -446,6 +480,8 @@ export interface components {
             location?: string;
         };
         Snapshot: {
+            /** Format: date-time */
+            manualRefreshAfter?: string;
             /** @description Safe provider error class; contains no remote body, URL or credential */
             errorCode?: string;
             /** Format: date-time */
@@ -520,6 +556,12 @@ export interface components {
             /** Format: date-time */
             nextManualAt?: string;
         };
+        Template: {
+            id: string;
+            title: string;
+            description: string;
+            requiresNetwork: boolean;
+        };
     };
     responses: {
         /** @description Invalid dashboard, widget or source */
@@ -539,6 +581,48 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Key-free starter templates with explicit network requirements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Template"][];
+                };
+            };
+        };
+    };
+    previewTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description New widget/source identities for a preview board; does not persist or fetch */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Board"];
+                };
+            };
+        };
+    };
     listConnections: {
         parameters: {
             query?: never;
@@ -904,6 +988,8 @@ export interface operations {
                 "application/json": {
                     title: string;
                     cloneFrom?: string;
+                    /** @description Starter template ID; mutually exclusive with cloneFrom */
+                    template?: string;
                 };
             };
         };

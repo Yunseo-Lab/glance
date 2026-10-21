@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { request, type Snapshot } from "./types";
 
-export function useSnapshots(revision?: number) {
+export function useSnapshots(revision?: number, boardID = "home") {
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({});
   const [error, setError] = useState("");
   const retry = useRef<() => void>(() => {});
@@ -19,7 +19,9 @@ export function useSnapshots(revision?: number) {
       let interval = 30_000;
       try {
         const result = await request<Record<string, Snapshot>>(
-          "/api/v1/snapshots",
+          boardID === "home"
+            ? "/api/v1/snapshots"
+            : `/api/v1/boards/${boardID}/snapshots`,
           { signal: controller.signal },
         );
         if (!stopped) {
@@ -62,6 +64,6 @@ export function useSnapshots(revision?: number) {
       window.removeEventListener("glance:refresh", wake);
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [revision]);
+  }, [revision, boardID]);
   return { snapshots, error, retry: () => retry.current() };
 }

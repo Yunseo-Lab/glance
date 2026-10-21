@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -8,19 +8,9 @@ import {
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
-import { request, ApiError } from "./types";
+import { RemoteStatus, Updated } from "./workspace/SourcePresentation";
+import { safeExternalURL as safeURL } from "./links";
 import type { FeedData, Snapshot, WeatherData, Widget } from "./types";
-
-function safeURL(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password
-      ? url.href
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 function Calendar({ now }: { now: Date }) {
   const [offset, setOffset] = useState(0);
@@ -263,124 +253,4 @@ const renderers: Record<
 };
 export default function WidgetView(props: WidgetProps) {
   return renderers[props.widget.type](props);
-}
-
-function RemoteStatus({ snapshot }: { snapshot?: Snapshot }) {
-  if (snapshot?.state === "paused")
-    return <p className="source-notice">자동 갱신이 일시정지되었습니다.</p>;
-  if (snapshot?.data)
-    return snapshot.error ? (
-      <p className="source-notice">갱신이 지연되어 마지막 정보를 표시합니다.</p>
-    ) : null;
-  if (snapshot?.state === "error")
-    return (
-      <div className="source-empty">
-        <CloudSun size={28} />
-        <p>{snapshot.error}</p>
-        <small>연결 상태를 확인하거나 위젯 설정을 변경하세요.</small>
-      </div>
-    );
-  return (
-    <div className="source-empty" role="status">
-      <LoaderCircle className="spin" size={24} />
-      <p>소식을 가져오고 있어요</p>
-      <small>다른 위젯은 바로 사용할 수 있습니다.</small>
-    </div>
-  );
-}
-function Updated({
-  snapshot,
-  sourceID,
-}: {
-  snapshot?: Snapshot;
-  sourceID?: string;
-}) {
-  return (
-    <div className="source-footer">
-      {sourceID && (
-        <ManualRefresh
-          sourceID={sourceID}
-          paused={snapshot?.state === "paused"}
-        />
-      )}
-      {snapshot?.updatedAt && (
-        <p className="updated">
-          <span
-            className={
-              snapshot.state === "fresh" ? "status-dot" : "status-dot stale"
-            }
-          />
-          {snapshot.state === "fresh" ? "업데이트" : "마지막 업데이트"} ·{" "}
-          {new Date(snapshot.updatedAt).toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function ManualRefresh({
-  sourceID,
-  paused,
-}: {
-  sourceID: string;
-  paused?: boolean;
-}) {
-  const [busy, setBusy] = useState(false),
-    [until, setUntil] = useState(0),
-    [tick, setTick] = useState(Date.now()),
-    [error, setError] = useState("");
-  useEffect(() => {
-    if (!until) return;
-    const timer = window.setInterval(() => {
-      const now = Date.now();
-      setTick(now);
-      if (now >= until) setUntil(0);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [until]);
-  const seconds = Math.max(0, Math.ceil((until - tick) / 1000));
-  async function refresh() {
-    setBusy(true);
-    setError("");
-    try {
-      const receipt = await request<{ nextAllowedAt: string }>(
-        `/api/v1/sources/${encodeURIComponent(sourceID)}/refresh`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        },
-      );
-      setTick(Date.now());
-      setUntil(Date.parse(receipt.nextAllowedAt));
-      window.dispatchEvent(new Event("glance:refresh"));
-    } catch (err) {
-      const failure = err as ApiError;
-      setError(failure.message);
-      if (failure.status === 429) {
-        setTick(Date.now());
-        setUntil(Date.now() + (failure.retryAfter || 30) * 1000);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <span className="manual-refresh">
-      <button
-        type="button"
-        className="icon-button"
-        aria-label={seconds ? `새로고침 (${seconds}초 대기)` : "새로고침"}
-        disabled={paused || busy || seconds > 0}
-        onClick={refresh}
-      >
-        <RefreshCw size={13} className={busy ? "spin" : ""} />
-        {seconds > 0 && <small>{seconds}초</small>}
-      </button>
-      {error && <small role="status">{error}</small>}
-    </span>
-  );
 }

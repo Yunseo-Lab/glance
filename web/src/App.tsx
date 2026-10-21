@@ -27,6 +27,15 @@ import {
   X,
   Bookmark,
 } from "lucide-react";
+import CommandPalette from "./workspace/CommandPalette";
+import StarterTemplates from "./workspace/StarterTemplates";
+import WorkspaceNav from "./workspace/WorkspaceNav";
+import { useWorkspaceNavigation } from "./workspace/navigation";
+import {
+  SourcePanel,
+  ReadingPanel,
+  SettingsPanel,
+} from "./workspace/WorkspacePanels";
 import WidgetEditor from "./WidgetEditor";
 import Login from "./Login";
 import WidgetView from "./WidgetView";
@@ -67,11 +76,6 @@ export default function App() {
   const [editor, setEditor] = useState<Widget | "new" | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
-  const {
-    snapshots,
-    error: connectionError,
-    retry: retryConnection,
-  } = useSnapshots(authRequired ? undefined : saved?.revision);
   const [category, setCategory] = useState<Category>("all");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
@@ -83,7 +87,39 @@ export default function App() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [focusWidgetId, setFocusWidgetId] = useState<string>();
   const importInput = useRef<HTMLInputElement>(null);
+ const [commandOpen,setCommandOpen]=useState(false);
 
+  const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
+  const { route, navigate } = useWorkspaceNavigation(() => {
+    if (saving) return false;
+    return (
+      !dirty ||
+      window.confirm("저장하지 않은 변경 사항을 버리고 다른 보드로 이동할까요?")
+    );
+  });
+  const boardID = route.boardID;
+  const boardEndpoint =
+    boardID === "home" ? "/api/v1/dashboard" : `/api/v1/boards/${boardID}`;
+  const [boards, setBoards] = useState<Board[]>([]);
+  const {
+    snapshots,
+    error: connectionError,
+    retry: retryConnection,
+  } = useSnapshots(
+    authRequired || !["board", "inbox"].includes(route.page)
+      ? undefined
+      : saved?.revision,
+    boardID,
+  );
+
+  useEffect(() => {
+    if (authRequired) return;
+    const controller = new AbortController();
+    request<Board[]>("/api/v1/boards", { signal: controller.signal })
+      .then(setBoards)
+      .catch(() => {});
+    return () => controller.abort();
+  }, [authRequired, saved?.revision, loadAttempt]);
   useEffect(() => {
     const expired = () => {
       setAuthRequired(true);
@@ -106,6 +142,15 @@ export default function App() {
     };
   }, []);
 
+  useEffect(()=>{
+   function shortcut(event:KeyboardEvent){
+    if(event.isComposing||event.keyCode===229||event.altKey||event.defaultPrevented||document.querySelector("dialog[open]"))return;
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setCommandOpen(true);return}
+    const target=event.target as HTMLElement|null;
+    if(event.key==="/"&&!event.ctrlKey&&!event.metaKey&&!target?.closest("input,textarea,select,[contenteditable=true]")&&route.page==="board"){event.preventDefault();document.querySelector<HTMLInputElement>('[aria-label="위젯 검색"]')?.focus()}
+   }
+   window.addEventListener("keydown",shortcut);return()=>window.removeEventListener("keydown",shortcut)
+  },[route.page]);
   async function importFile(file: File) {
     if (!saved || saving) return;
     setSaving(true);
@@ -115,10 +160,14 @@ export default function App() {
       if (file.size > 1_048_576)
         throw new Error("설정 파일은 1MB 이하여야 합니다.");
       const candidate = parseDashboardFile(await file.text());
-      const validated = await request<Board>("/api/v1/dashboard/validate", {
+      const validated = await request<Board>(`${boardEndpoint}/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...candidate, revision: saved.revision }),
+        body: JSON.stringify({
+          ...candidate,
+          id: saved.id,
+          revision: saved.revision,
+        }),
       });
       setDraft(structuredClone(validated));
       setEditing(true);
@@ -144,7 +193,16 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    request<Board>("/api/v1/dashboard", { signal: controller.signal })
+    if (saved?.id !== boardID) {
+      setSaved(undefined);
+      setDraft(undefined);
+      setEditing(false);
+      setEditor(null);
+      setConflict(false);
+      setCategory("all");
+      setQuery("");
+    }
+    request<Board>(boardEndpoint, { signal: controller.signal })
       .then((board) => {
         setSaved(board);
         setDraft(structuredClone(board));
@@ -154,12 +212,11 @@ export default function App() {
         if (!controller.signal.aborted) setError(String(err.message));
       });
     return () => controller.abort();
-  }, [loadAttempt]);
+  }, [loadAttempt, boardID]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
   useEffect(() => {
     function warn(event: BeforeUnloadEvent) {
       if (dirty) {
@@ -184,7 +241,7 @@ export default function App() {
     setConflict(false);
     setNotice("");
     try {
-      const result = await request<Board>("/api/v1/dashboard", {
+      const result = await request<Board>(boardEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prune({ ...board, title: board.title.trim() })),
@@ -247,6 +304,7 @@ export default function App() {
     setNotice("위젯을 복제했습니다. 대시보드 저장을 눌러 보관하세요.");
   }
   function beginAdd() {
+    navigate("board");
     if (!draft || draft.widgets.length >= 32) return;
     setEditing(true);
     setEditor("new");
@@ -270,7 +328,7 @@ export default function App() {
       return;
     setSaving(true);
     try {
-      const board = await request<Board>("/api/v1/dashboard");
+      const board = await request<Board>(boardEndpoint);
       setSaved(board);
       setDraft(structuredClone(board));
       setEditing(false);
@@ -309,6 +367,12 @@ export default function App() {
               onClick={() => setLoadAttempt(loadAttempt + 1)}
             >
               다시 연결
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => navigate("board", "home")}
+            >
+              기본 보드로 이동
             </button>
           </>
         ) : (
@@ -351,6 +415,7 @@ export default function App() {
             if (dirty && !discardDraft()) return;
             setCategory("all");
             setQuery("");
+            navigate("board", "home");
           }}
         >
           <div className="brand-mark">
@@ -367,14 +432,18 @@ export default function App() {
             <small>하루를 여는 작은 습관</small>
           </div>
         </div>
-        <p className="nav-caption">DASHBOARD</p>
+        <WorkspaceNav route={route} navigate={navigate} boards={boards} />
+        <p className="nav-caption">이 보드</p>
         <nav aria-label="대시보드 분류">
           {categories.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               className={`nav-item ${category === id ? "active" : ""}`}
-              aria-current={category === id ? "page" : undefined}
-              onClick={() => setCategory(id)}
+              aria-current={route.page === "board" && category === id ? "page" : undefined}
+              onClick={() => {
+                setCategory(id);
+                navigate("board");
+              }}
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -411,10 +480,22 @@ export default function App() {
             <LayoutDashboard size={16} />
             <span>나의 공간</span>
             <ChevronRight size={13} />
-            <strong>{draft.title}</strong>
+            <strong>
+              {route.page === "board"
+                ? draft.title
+                : (
+                    {
+                      sources: "데이터 소스",
+                      inbox: "모아 읽기",
+                      settings: "설정",
+                      "not-found": "찾을 수 없음",
+                    } as const
+                  )[route.page]}
+            </strong>
           </div>
           <div className="topbar-actions">
-            <label className="search">
+            <button className="icon-button" aria-label="명령 팔레트 열기" title="Ctrl / ⌘ K" onClick={()=>setCommandOpen(true)}><Search size={18}/></button>
+            <label className="search" hidden={route.page !== "board"}>
               <Search size={16} />
               <input
                 aria-label="위젯 검색"
@@ -463,6 +544,7 @@ export default function App() {
                   try {
                     await request("/api/v1/auth/logout", { method: "POST" });
                     setAuthRequired(true);
+                    setBoards([]);
                     setSaved(undefined);
                     setDraft(undefined);
                     setEditing(false);
@@ -482,354 +564,389 @@ export default function App() {
             </span>
           </div>
         </header>
-        <main id="main">
-          <section className="page-heading">
-            <div>
-              <div className="date-line">
-                <span className="date-dot" />
-                {now.toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "long",
-                })}
-              </div>
-              <h1>
-                오늘도, 한눈에<span>.</span>
-              </h1>
-              <p>내게 필요한 소식을 한곳에 모아보세요.</p>
-            </div>
-            <div className="heading-actions">
-              <input
-                ref={importInput}
-                type="file"
-                accept=".json,application/json"
-                aria-label="설정 JSON 파일"
-                hidden
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0];
-                  event.currentTarget.value = "";
-                  if (file) void importFile(file);
-                }}
-              />
+        <WorkspaceNav
+          mobile
+          route={route}
+          navigate={navigate}
+          boards={boards}
+        />
+        <main id="main" tabIndex={-1}>
+          {route.page === "sources" && <SourcePanel boards={boards} />}
+          {route.page === "inbox" && (
+            <ReadingPanel board={saved} snapshots={snapshots} />
+          )}
+          {route.page === "settings" && <SettingsPanel />}
+          {route.page === "not-found" && (
+            <div className="empty-board">
+              <h1>이 페이지를 찾을 수 없습니다</h1>
               <button
-                className="button secondary"
-                disabled={saving}
-                onClick={() => {
-                  if (
-                    dirty &&
-                    !window.confirm(
-                      "현재 편집 대신 가져온 설정을 확인할까요? 저장 전에는 기존 설정이 유지됩니다.",
-                    )
-                  )
-                    return;
-                  importInput.current?.click();
-                }}
+                className="button primary"
+                onClick={() => navigate("board", "home")}
               >
-                <Upload size={15} /> 설정 가져오기
-              </button>
-              <button
-                className="button secondary"
-                disabled={saving}
-                title="마지막으로 저장된 설정을 내려받습니다"
-                onClick={() => {
-                  downloadBoard(saved);
-                  setNotice(
-                    dirty
-                      ? "저장된 설정을 내보냈습니다. 현재 편집은 파일에 포함되지 않습니다."
-                      : "설정 파일을 내보냈습니다.",
-                  );
-                }}
-              >
-                <Download size={15} /> 설정 내보내기
-              </button>
-              {editing ? (
-                <>
-                  <button
-                    className="button secondary"
-                    disabled={saving}
-                    onClick={() => discardDraft()}
-                  >
-                    취소
-                  </button>
-                  <button
-                    className="button primary"
-                    disabled={saving}
-                    onClick={() => void persist(draft)}
-                  >
-                    {saving ? (
-                      <LoaderCircle size={16} className="spin" />
-                    ) : (
-                      <Check size={16} />
-                    )}{" "}
-                    대시보드 저장
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="button secondary"
-                    disabled={saving}
-                    onClick={() => {
-                      setEditing(true);
-                      setNotice("");
-                    }}
-                  >
-                    <Pencil size={15} /> 편집
-                  </button>
-                  <button
-                    className="button primary"
-                    disabled={saving || draft.widgets.length >= 32}
-                    onClick={beginAdd}
-                  >
-                    <Plus size={17} /> 위젯 추가
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
-          {connectionError && (
-            <div className="banner connection-banner" role="status">
-              {connectionError}
-              <button className="button secondary" onClick={retryConnection}>
-                다시 연결
+                내 대시보드로 이동
               </button>
             </div>
           )}
-          {error && (
-            <div className="banner error" role="alert">
-              <span>{error}</span>
-              {conflict && (
-                <div className="conflict-actions">
-                  <button
-                    className="button secondary"
-                    disabled={saving}
-                    onClick={() => {
-                      downloadBoard(draft);
-                      setNotice("현재 편집을 파일로 백업했습니다.");
-                    }}
-                  >
-                    내 편집 백업
-                  </button>
-                  <button
-                    className="button secondary"
-                    disabled={saving}
-                    onClick={() => void reloadLatest()}
-                  >
-                    최신 상태 불러오기
-                  </button>
+          <div hidden={route.page !== "board"}>
+            <section className="page-heading">
+              <div>
+                <div className="date-line">
+                  <span className="date-dot" />
+                  {now.toLocaleDateString("ko-KR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    weekday: "long",
+                  })}
                 </div>
-              )}
-              <button
-                className="icon-button"
-                aria-label="오류 알림 닫기"
-                onClick={() => setError("")}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {notice && (
-            <div className="banner" role="status">
-              <CheckCheck size={16} />
-              {notice}
-              <button
-                className="icon-button"
-                aria-label="알림 닫기"
-                onClick={() => setNotice("")}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {editing && (
-            <div className="board-settings">
-              <label htmlFor="board-title">대시보드 이름</label>
-              <input
-                id="board-title"
-                value={draft.title}
-                maxLength={30}
-                disabled={saving}
-                onChange={(event) =>
-                  setDraft({ ...draft, title: event.target.value })
-                }
-              />
-              <span className="draft-status" aria-live="polite">
-                {dirty ? "저장하지 않은 변경 사항" : "저장된 상태"}
+                <h1>
+                  오늘도, 한눈에<span>.</span>
+                </h1>
+                <p>내게 필요한 소식을 한곳에 모아보세요.</p>
+              </div>
+              <div className="heading-actions">
+                <input
+                  ref={importInput}
+                  type="file"
+                  accept=".json,application/json"
+                  aria-label="설정 JSON 파일"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    if (file) void importFile(file);
+                  }}
+                />
+                <button
+                  className="button secondary"
+                  disabled={saving}
+                  onClick={() => {
+                    if (
+                      dirty &&
+                      !window.confirm(
+                        "현재 편집 대신 가져온 설정을 확인할까요? 저장 전에는 기존 설정이 유지됩니다.",
+                      )
+                    )
+                      return;
+                    importInput.current?.click();
+                  }}
+                >
+                  <Upload size={15} /> 설정 가져오기
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={saving}
+                  title="마지막으로 저장된 설정을 내려받습니다"
+                  onClick={() => {
+                    downloadBoard(saved);
+                    setNotice(
+                      dirty
+                        ? "저장된 설정을 내보냈습니다. 현재 편집은 파일에 포함되지 않습니다."
+                        : "설정 파일을 내보냈습니다.",
+                    );
+                  }}
+                >
+                  <Download size={15} /> 설정 내보내기
+                </button>
+                {editing ? (
+                  <>
+                    <button
+                      className="button secondary"
+                      disabled={saving}
+                      onClick={() => discardDraft()}
+                    >
+                      취소
+                    </button>
+                    <button
+                      className="button primary"
+                      disabled={saving}
+                      onClick={() => void persist(draft)}
+                    >
+                      {saving ? (
+                        <LoaderCircle size={16} className="spin" />
+                      ) : (
+                        <Check size={16} />
+                      )}{" "}
+                      대시보드 저장
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="button secondary"
+                      disabled={saving}
+                      onClick={() => {
+                        setEditing(true);
+                        setNotice("");
+                      }}
+                    >
+                      <Pencil size={15} /> 편집
+                    </button>
+                    <button
+                      className="button primary"
+                      disabled={saving || draft.widgets.length >= 32}
+                      onClick={beginAdd}
+                    >
+                      <Plus size={17} /> 위젯 추가
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+            {connectionError && (
+              <div className="banner connection-banner" role="status">
+                {connectionError}
+                <button className="button secondary" onClick={retryConnection}>
+                  다시 연결
+                </button>
+              </div>
+            )}
+            {error && (
+              <div className="banner error" role="alert">
+                <span>{error}</span>
+                {conflict && (
+                  <div className="conflict-actions">
+                    <button
+                      className="button secondary"
+                      disabled={saving}
+                      onClick={() => {
+                        downloadBoard(draft);
+                        setNotice("현재 편집을 파일로 백업했습니다.");
+                      }}
+                    >
+                      내 편집 백업
+                    </button>
+                    <button
+                      className="button secondary"
+                      disabled={saving}
+                      onClick={() => void reloadLatest()}
+                    >
+                      최신 상태 불러오기
+                    </button>
+                  </div>
+                )}
+                <button
+                  className="icon-button"
+                  aria-label="오류 알림 닫기"
+                  onClick={() => setError("")}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            {notice && (
+              <div className="banner" role="status">
+                <CheckCheck size={16} />
+                {notice}
+                <button
+                  className="icon-button"
+                  aria-label="알림 닫기"
+                  onClick={() => setNotice("")}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            {editing && (
+              <div className="board-settings">
+                <label htmlFor="board-title">대시보드 이름</label>
+                <input
+                  id="board-title"
+                  value={draft.title}
+                  maxLength={30}
+                  disabled={saving}
+                  onChange={(event) =>
+                    setDraft({ ...draft, title: event.target.value })
+                  }
+                />
+                <span className="draft-status" aria-live="polite">
+                  {dirty ? "저장하지 않은 변경 사항" : "저장된 상태"}
+                </span>
+              </div>
+            )}
+            <div className="board-toolbar">
+              <div className="board-tabs" aria-label="위젯 필터">
+                {categories.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    className={category === id ? "selected" : ""}
+                    aria-pressed={category === id}
+                    onClick={() => {
+                      setCategory(id);
+                      navigate("board");
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="board-status">
+                {editing ? (
+                  <>
+                    <GripVertical size={14} /> 드래그하거나 화살표로 순서를
+                    바꾸세요
+                  </>
+                ) : (
+                  <>
+                    <span className="status-dot" />
+                    나만의 대시보드 · {draft.widgets.length}개 위젯
+                  </>
+                )}
               </span>
             </div>
-          )}
-          <div className="board-toolbar">
-            <div className="board-tabs" aria-label="위젯 필터">
-              {categories.map(({ id, label }) => (
-                <button
-                  key={id}
-                  className={category === id ? "selected" : ""}
-                  aria-pressed={category === id}
-                  onClick={() => setCategory(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <span className="board-status">
-              {editing ? (
-                <>
-                  <GripVertical size={14} /> 드래그하거나 화살표로 순서를
-                  바꾸세요
-                </>
-              ) : (
-                <>
-                  <span className="status-dot" />
-                  나만의 대시보드 · {draft.widgets.length}개 위젯
-                </>
-              )}
-            </span>
-          </div>
-          <div
-            className={`widget-grid ${editing ? "is-editing" : ""}`}
-            inert={saving}
-          >
-            {visible.map((widget) => {
-              const Icon = icons[widget.type as WidgetType] || NotebookPen;
-              const index = draft.widgets.findIndex((w) => w.id === widget.id);
-              return (
-                <article
-                  key={widget.id}
-                  id={`widget-${widget.id}`}
-                  tabIndex={-1}
-                  data-widget-id={widget.id}
-                  className={`widget-card ${widget.type}-card size-${widget.size} ${dragged === widget.id ? "dragging" : ""}`}
-                  draggable={editing}
-                  onDragStart={(event) => {
-                    setDragged(widget.id);
-                    event.dataTransfer.setData("text/plain", widget.id);
-                    event.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => setDragged(undefined)}
-                  onDragOver={(event) => {
-                    if (editing) event.preventDefault();
-                  }}
-                  onDrop={(event) => {
-                    if (!editing) return;
-                    event.preventDefault();
-                    move(event.dataTransfer.getData("text/plain"), index);
-                    setDragged(undefined);
-                  }}
-                >
-                  <div className="widget-header">
-                    <div className="widget-title">
-                      <span className={`widget-icon ${widget.type}`}>
-                        <Icon size={16} />
-                      </span>
-                      <h2>{widget.title}</h2>
-                    </div>
-                    {editing && (
-                      <div className="widget-controls">
-                        <button
-                          className="icon-button"
-                          disabled={saving || draft.widgets.length >= 32}
-                          aria-label={`${widget.title} 복제`}
-                          onClick={() => duplicateWidget(widget.id)}
-                        >
-                          <Copy size={14} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          disabled={index === 0}
-                          aria-label={`${widget.title} 앞으로 이동`}
-                          onClick={() => move(widget.id, index - 1)}
-                        >
-                          <ArrowUp size={14} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          disabled={index === draft.widgets.length - 1}
-                          aria-label={`${widget.title} 뒤로 이동`}
-                          onClick={() => move(widget.id, index + 1)}
-                        >
-                          <ArrowDown size={14} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          aria-label={`${widget.title} 설정`}
-                          onClick={() => setEditor(widget)}
-                        >
-                          <Settings2 size={14} />
-                        </button>
-                        <button
-                          className="icon-button danger"
-                          aria-label={`${widget.title} 삭제`}
-                          onClick={() =>
-                            setDraft(
-                              prune({
-                                ...draft,
-                                widgets: draft.widgets.filter(
-                                  (w) => w.id !== widget.id,
-                                ),
-                              }),
-                            )
-                          }
-                        >
-                          <Trash2 size={14} />
-                        </button>
+            {saved.revision===1&&!editing&&<StarterTemplates onPreview={template=>{setDraft({...template,id:saved.id,title:saved.title,revision:saved.revision});setEditing(true);setCategory("all");setQuery("");setNotice("템플릿을 불러왔습니다. 확인 후 대시보드 저장을 눌러주세요.")}}/>}
+<div
+              className={`widget-grid ${editing ? "is-editing" : ""}`}
+              inert={saving}
+            >
+              {visible.map((widget) => {
+                const Icon = icons[widget.type as WidgetType] || NotebookPen;
+                const index = draft.widgets.findIndex(
+                  (w) => w.id === widget.id,
+                );
+                return (
+                  <article
+                    key={widget.id}
+                    id={`widget-${widget.id}`}
+                    tabIndex={-1}
+                    data-widget-id={widget.id}
+                    className={`widget-card ${widget.type}-card size-${widget.size} ${dragged === widget.id ? "dragging" : ""}`}
+                    draggable={editing}
+                    onDragStart={(event) => {
+                      setDragged(widget.id);
+                      event.dataTransfer.setData("text/plain", widget.id);
+                      event.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => setDragged(undefined)}
+                    onDragOver={(event) => {
+                      if (editing) event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      if (!editing) return;
+                      event.preventDefault();
+                      move(event.dataTransfer.getData("text/plain"), index);
+                      setDragged(undefined);
+                    }}
+                  >
+                    <div className="widget-header">
+                      <div className="widget-title">
+                        <span className={`widget-icon ${widget.type}`}>
+                          <Icon size={16} />
+                        </span>
+                        <h2>{widget.title}</h2>
                       </div>
-                    )}
-                  </div>
-                  <WidgetBoundary key={JSON.stringify(widget)}>
-                    <WidgetView
-                      widget={widget}
-                      snapshot={
-                        widget.sourceId ? snapshots[widget.sourceId] : undefined
-                      }
-                      now={now}
-                    />
-                  </WidgetBoundary>
-                </article>
-              );
-            })}
-            {editing && (
-              <button
-                className="add-widget-card"
-                disabled={draft.widgets.length >= 32}
-                onClick={beginAdd}
-              >
-                <span>
-                  <Plus size={25} />
-                </span>
-                <strong>나의 대시보드 채우기</strong>
-                <small>필요한 위젯을 추가해 보세요</small>
-              </button>
-            )}
-          </div>
-          {!visible.length && !editing && (
-            <div className="empty-board">
-              <Search size={32} />
-              <h2>{query ? "검색 결과가 없습니다" : "아직 위젯이 없습니다"}</h2>
-              <p>
-                {query
-                  ? "다른 이름으로 검색해 보세요."
-                  : "첫 위젯을 추가해 나만의 공간을 만들어보세요."}
-              </p>
-              <button
-                className="button secondary"
-                onClick={() => {
-                  if (query) setQuery("");
-                  else beginAdd();
-                }}
-              >
-                {query ? "검색 지우기" : "위젯 추가"}
-              </button>
+                      {editing && (
+                        <div className="widget-controls">
+                          <button
+                            className="icon-button"
+                            disabled={saving || draft.widgets.length >= 32}
+                            aria-label={`${widget.title} 복제`}
+                            onClick={() => duplicateWidget(widget.id)}
+                          >
+                            <Copy size={14} />
+                          </button>
+                          <button
+                            className="icon-button"
+                            disabled={index === 0}
+                            aria-label={`${widget.title} 앞으로 이동`}
+                            onClick={() => move(widget.id, index - 1)}
+                          >
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            className="icon-button"
+                            disabled={index === draft.widgets.length - 1}
+                            aria-label={`${widget.title} 뒤로 이동`}
+                            onClick={() => move(widget.id, index + 1)}
+                          >
+                            <ArrowDown size={14} />
+                          </button>
+                          <button
+                            className="icon-button"
+                            aria-label={`${widget.title} 설정`}
+                            onClick={() => setEditor(widget)}
+                          >
+                            <Settings2 size={14} />
+                          </button>
+                          <button
+                            className="icon-button danger"
+                            aria-label={`${widget.title} 삭제`}
+                            onClick={() =>
+                              setDraft(
+                                prune({
+                                  ...draft,
+                                  widgets: draft.widgets.filter(
+                                    (w) => w.id !== widget.id,
+                                  ),
+                                }),
+                              )
+                            }
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <WidgetBoundary key={JSON.stringify(widget)}>
+                      <WidgetView
+                        widget={widget}
+                        snapshot={
+                          widget.sourceId
+                            ? snapshots[widget.sourceId]
+                            : undefined
+                        }
+                        now={now}
+                      />
+                    </WidgetBoundary>
+                  </article>
+                );
+              })}
+              {editing && (
+                <button
+                  className="add-widget-card"
+                  disabled={draft.widgets.length >= 32}
+                  onClick={beginAdd}
+                >
+                  <span>
+                    <Plus size={25} />
+                  </span>
+                  <strong>나의 대시보드 채우기</strong>
+                  <small>필요한 위젯을 추가해 보세요</small>
+                </button>
+              )}
             </div>
-          )}
-          <footer className="page-footer">
-            <span>필요한 만큼만, 나답게.</span>
-            <span>
-              glance<span className="brand-period">.</span>
-            </span>
-          </footer>
+            {!visible.length && !editing && (
+              <div className="empty-board">
+                <Search size={32} />
+                <h2>
+                  {query ? "검색 결과가 없습니다" : "아직 위젯이 없습니다"}
+                </h2>
+                <p>
+                  {query
+                    ? "다른 이름으로 검색해 보세요."
+                    : "첫 위젯을 추가해 나만의 공간을 만들어보세요."}
+                </p>
+                <button
+                  className="button secondary"
+                  onClick={() => {
+                    if (query) setQuery("");
+                    else beginAdd();
+                  }}
+                >
+                  {query ? "검색 지우기" : "위젯 추가"}
+                </button>
+              </div>
+            )}
+            <footer className="page-footer">
+              <span>필요한 만큼만, 나답게.</span>
+              <span>
+                glance<span className="brand-period">.</span>
+              </span>
+            </footer>
+          </div>
         </main>
       </div>
+      {commandOpen&&<CommandPalette boards={boards} onNavigate={navigate} onAdd={beginAdd} onClose={()=>setCommandOpen(false)}/>}
       {editor && (
         <WidgetEditor
           key={editor === "new" ? "new" : editor.id}
