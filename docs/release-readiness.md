@@ -50,8 +50,8 @@ External requirements remain explicitly blocked, never counted as passed.
 | 39 | Mac mini setup and backup scheduling guide | Complete |
 | 40 | Dependency/security checks and final full regression | Complete |
 | 41 | Document measured release candidate limitations | Complete |
-| 42 | Commit implementation and release preparation | Pending |
-| 43 | Push reviewed changes to the repository | Pending |
+| 42 | Commit implementation and release preparation | Complete |
+| 43 | Push reviewed changes to the repository | Complete |
 | 44 | Mac mini availability and domain selection | External: unavailable |
 | 45 | Live HTTPS deployment and real-device acceptance | External: blocked by 44 |
 
@@ -108,3 +108,13 @@ Source push is checked separately through the provided Git HTTPS connection.
 Follow [the operations runbook](operations.md) for Mac startup, HTTPS, daily backup,
 restore, updates and rollback. Keep the owner password and backups private and
 store another backup copy away from the operating Mac.
+
+## Git publication
+
+Implementation commit `0a376f9` was pushed successfully to
+[`release/personal-dashboard`](https://github.com/Yunseo-Lab/glance/tree/release/personal-dashboard).
+This final record updates tasks 42–43 after the successful push. The main branch
+was preserved. No PR, live deployment, or remote CI success is claimed.
+
+**Completed: 43 / 45.** The remaining two tasks require the operating Mac mini and
+real domain/network acceptance; they cannot be completed on this cloud machine.
