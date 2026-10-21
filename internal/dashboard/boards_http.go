@@ -18,9 +18,11 @@ func serviceError(w http.ResponseWriter, err error) {
 		}
 		w.Header().Set("Retry-After", strconv.Itoa(seconds))
 		apiError(w, 429, cooldown.Error())
+	case errors.Is(err, ErrConnectionLocked):
+		apiError(w, 503, ErrConnectionLocked.Error())
 	case errors.Is(err, ErrNotFound):
 		apiError(w, 404, err.Error())
-	case errors.Is(err, ErrConflict), errors.Is(err, ErrSourceConflict):
+	case errors.Is(err, ErrConflict), errors.Is(err, ErrSourceConflict), errors.Is(err, ErrInUse):
 		apiError(w, 409, err.Error())
 	case errors.Is(err, ErrLimit), errors.Is(err, ErrSourceLimit):
 		apiError(w, 422, err.Error())
@@ -31,6 +33,32 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("DELETE /api/v1/sources/{id}", func(w http.ResponseWriter, r *http.Request) {
+		var input struct{}
+		if !readMutation(w, r, &input) {
+			return
+		}
+		id := r.PathValue("id")
+		if err := service.store.DeleteSource(id); err != nil {
+			serviceError(w, err)
+			return
+		}
+		if service.runtime != nil {
+			service.runtime.CancelSource(id)
+		}
+		_ = service.store.pruneSnapshots(nil)
+		jsonResponse(w, 200, map[string]bool{"deleted": true})
+	})
+
+	mux.HandleFunc("GET /api/v1/connections", func(w http.ResponseWriter, r *http.Request) {
+		connections, err := service.store.Connections()
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, connections)
+	})
+
 	mux.HandleFunc("GET /api/v1/sources", func(w http.ResponseWriter, r *http.Request) {
 		statuses, err := service.store.SourceStatuses(time.Now())
 		if err != nil {

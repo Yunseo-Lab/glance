@@ -20,7 +20,13 @@ const server = spawn(
   ],
   {
     stdio: "inherit",
-    env: { ...process.env, GLANCE_DASHBOARD_TOKEN: "" },
+    env: {
+      ...process.env,
+      GLANCE_DASHBOARD_TOKEN: "",
+      GLANCE_DASHBOARD_TOKEN_FILE: "",
+      GLANCE_CONNECTION_KEY_FILE: "",
+      GLANCE_DASHBOARD_PUBLIC_URL: "",
+    },
   },
 );
 for (const signal of ["SIGINT", "SIGTERM"])

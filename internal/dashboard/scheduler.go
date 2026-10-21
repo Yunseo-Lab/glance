@@ -17,9 +17,15 @@ func (r *Runtime) startScheduler(interval time.Duration) {
 	r.mu.Unlock()
 	go func() {
 		defer r.wg.Done()
+		lastRetention := time.Time{}
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
+			if now := r.now(); lastRetention.IsZero() || now.Sub(lastRetention) >= time.Hour {
+				if err := r.store.RetainData(now); err == nil {
+					lastRetention = now
+				}
+			}
 			sources, err := r.store.Sources()
 			if err == nil {
 				for _, source := range sources {

@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -27,26 +27,23 @@ type loginAttempts struct {
 	until time.Time
 }
 type ownerAuth struct {
-	passwordHash [32]byte
-	key          [32]byte
-	enabled      bool
-	secure       bool
-	mu           sync.Mutex
-	attempts     map[string]loginAttempts
-	sessions     map[string]time.Time
-	now          func() time.Time
+	passwordHash  [32]byte
+	key           [32]byte
+	enabled       bool
+	secure        bool
+	mu            sync.Mutex
+	attempts      map[string]loginAttempts
+	basicAttempts map[string]loginAttempts
+	sessions      map[string]time.Time
+	now           func() time.Time
 }
 
 func newOwnerAuth(token string) *ownerAuth {
-	a := &ownerAuth{passwordHash: sha256.Sum256([]byte(token)), enabled: token != "", secure: strings.HasPrefix(os.Getenv("GLANCE_DASHBOARD_PUBLIC_URL"), "https://"), attempts: map[string]loginAttempts{}, sessions: map[string]time.Time{}, now: time.Now}
+	a := &ownerAuth{passwordHash: sha256.Sum256([]byte(token)), enabled: token != "", secure: strings.HasPrefix(os.Getenv("GLANCE_DASHBOARD_PUBLIC_URL"), "https://"), attempts: map[string]loginAttempts{}, basicAttempts: map[string]loginAttempts{}, sessions: map[string]time.Time{}, now: time.Now}
 	if _, err := rand.Read(a.key[:]); err != nil {
 		panic(err)
 	}
 	return a
-}
-func sameOrigin(r *http.Request) bool {
-	u, err := url.Parse(r.Header.Get("Origin"))
-	return err == nil && u.Host == r.Host && (u.Scheme == "https" || u.Scheme == "http") && r.Header.Get("Sec-Fetch-Site") != "cross-site"
 }
 func (a *ownerAuth) validPassword(password string) bool {
 	hash := sha256.Sum256([]byte(password))
@@ -85,8 +82,14 @@ func (a *ownerAuth) authenticated(r *http.Request) bool {
 	if !a.enabled {
 		return true
 	}
-	if _, password, ok := r.BasicAuth(); ok && a.validPassword(password) {
-		return true
+	if _, password, ok := r.BasicAuth(); ok {
+		if a.basicBlocked(r, false) {
+			return false
+		}
+		if len(password) <= 4096 && a.validPassword(password) {
+			return true
+		}
+		a.basicBlocked(r, true)
 	}
 	cookie, err := r.Cookie(sessionCookie)
 	if err != nil || len(cookie.Value) > 256 {
@@ -157,7 +160,12 @@ func (a *ownerAuth) register(mux *http.ServeMux) {
 			apiError(w, 429, "시도가 너무 많습니다. 1분 후 다시 시도하세요.")
 			return
 		}
-		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if mediaErr != nil || mediaType != "application/json" {
+			apiError(w, 415, "JSON 요청이 필요합니다")
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 32768)
 		defer r.Body.Close()
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
@@ -167,6 +175,10 @@ func (a *ownerAuth) register(mux *http.ServeMux) {
 		var extra any
 		if err := decoder.Decode(&body); err != nil || decoder.Decode(&extra) != io.EOF {
 			apiError(w, 400, "로그인 요청을 확인하세요")
+			return
+		}
+		if len(body.Password) > 4096 {
+			apiError(w, 400, "비밀번호 길이를 확인하세요")
 			return
 		}
 		if !a.enabled || !a.validPassword(body.Password) {
@@ -216,4 +228,38 @@ func loadOwnerToken() (string, error) {
 		return "", fmt.Errorf("owner credential must be at most 4096 bytes")
 	}
 	return value, nil
+}
+
+func peerAddress(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// Count failed Basic attempts separately from browser login and never trust
+// caller-supplied forwarding headers. Valid health/read traffic consumes no quota.
+func (a *ownerAuth) basicBlocked(r *http.Request, failure bool) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	now := a.now()
+	for key, state := range a.basicAttempts {
+		if !state.until.After(now) {
+			delete(a.basicAttempts, key)
+		}
+	}
+	host := peerAddress(r)
+	state := a.basicAttempts[host]
+	if state.count >= 10 || (state.count == 0 && len(a.basicAttempts) >= 1024) {
+		return true
+	}
+	if failure {
+		if state.count == 0 {
+			state.until = now.Add(time.Minute)
+		}
+		state.count++
+		a.basicAttempts[host] = state
+	}
+	return false
 }

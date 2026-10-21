@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-21T23:09:36+00:00
+최근 기록: 2026-10-21T23:28:23+00:00
 
-조사·설계 8/8 · 신규 구현 검증 16/72 · 진행 중 1 · 예정 53 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 24/72 · 진행 중 1 · 예정 45 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -41,3 +41,19 @@
 | 2026-10-21T23:08:27+00:00 | F024 | in_progress | 수집 장애·가짜 시계·재시작·취소·동시성의 통합 regression gate를 실행하고 고장 시나리오를 보강한다. |
 | 2026-10-21T23:09:36+00:00 | F024 | verified | 가짜 시계의 backoff/복구·oversize·panic·304·lease/crash·삭제취소·호스트/global 제한을 race 10회 반복. 전체 브라우저 18개 통과. |
 | 2026-10-21T23:09:36+00:00 | F025 | in_progress | credential이 board·source JSON·export·browser·로그에 노출되지 않는 connection 계약을 구현한다. |
+| 2026-10-21T23:11:27+00:00 | F025 | verified | connection 응답 DTO와 비밀 저장형을 분리하고 credential marker가 인증된 API·board export에 없음을 검증했다. |
+| 2026-10-21T23:11:27+00:00 | F026 | in_progress | DB 밖 key file과 버전 있는 AES-GCM envelope·row binding·잘못된 key/손상·권한 검사를 구현한다. |
+| 2026-10-21T23:13:04+00:00 | F026 | verified | DB 밖 key file·AES-GCM·record/provider binding·잘못된 키/손상 거부·0600 생성·기존 ciphertext에 대한 키 재생성 거부를 검증했다. |
+| 2026-10-21T23:13:04+00:00 | F027 | in_progress | 연결 생성·안전한 metadata 조회·실제 endpoint 테스트·철회와 최소 권한 capability 응답을 구현한다. |
+| 2026-10-21T23:15:05+00:00 | F027 | verified | 연결 생성·ciphertext 저장·공개 origin만 반환·권한 범위를 과장하지 않는 endpoint 테스트·quota·철회 검사 통과. 실제 개인 키 live 연결은 미검증. |
+| 2026-10-21T23:15:05+00:00 | F028 | in_progress | 이전 DB/key를 보존하며 새 key file로 전 connection을 원자적으로 재암호화하고 실패 복구를 검증한다. |
+| 2026-10-21T23:16:39+00:00 | F028 | verified | 새 key로 원자적 재암호화·옛 key/DB rollback·손상 중간 실패 rollback·신규 key 정리·출력 overwrite 거부 검증 통과. |
+| 2026-10-21T23:16:39+00:00 | F029 | in_progress | 자동화 Basic 인증도 실패 횟수 제한을 적용하고 session·header·credential 길이와 proxy header 위조를 검증한다. |
+| 2026-10-21T23:17:18+00:00 | F029 | verified | Basic 실패 10회/분·로그인 별도 quota·정상 200회 읽기 비소모·X-Forwarded-For 위조 무효·길이/MIME/header 상한 검사 통과. |
+| 2026-10-21T23:17:18+00:00 | F030 | in_progress | 설정 HTTPS origin을 엄격히 비교하고 신뢰하지 않는 forwarding header와 cross-origin credential redirect를 거부한다. |
+| 2026-10-21T23:18:45+00:00 | F030 | verified | HTTPS scheme/host/port origin·userinfo/path/query 거부·위조 forwarding header 무시·운영 Host의 DNS rebinding 방어와 교차 origin auth header 제거 검사 통과. |
+| 2026-10-21T23:18:45+00:00 | F031 | in_progress | SSRF 특수 주소·리다이렉트·악성 피드·요청 입력과 키 envelope의 fuzz/regression을 보강한다. |
+| 2026-10-21T23:24:20+00:00 | F031 | verified | 재시작 후 DNS rebinding/redirect/주소대역 회귀, DTD·ENTITY 명시 거부, origin/envelope fuzz를 재실행해 통과. 검증 로그를 workspace에 보존. |
+| 2026-10-21T23:24:20+00:00 | F032 | in_progress | 삭제·철회·source orphan·90일 보관·export/log redaction과 G2 보안 통합 검증을 마무리한다. |
+| 2026-10-21T23:28:22+00:00 | F032 | verified | G2 통과: saved entry를 보존하는 90일 retention·삭제/철회·key/DB rollback·SSRF/XXE/fuzz·API 전수 계약·race/vet·브라우저 18개. Go/npm 알려진 취약점 발견 0. |
+| 2026-10-21T23:28:23+00:00 | F033 | in_progress | 복수 보드·소스·읽기·설정의 navigation shell과 직접 URL·뒤로 가기·빈 상태를 구현한다. |

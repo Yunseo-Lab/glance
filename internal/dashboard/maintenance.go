@@ -212,6 +212,8 @@ func maintenance(command string, args []string) int {
 	db := flags.String("db", defaultDB, "Source database (restore: new destination)")
 	output := flags.String("output", "", "New backup file")
 	input := flags.String("input", "", "Backup file to restore")
+	keyFile := flags.String("key-file", os.Getenv("GLANCE_CONNECTION_KEY_FILE"), "Existing connection encryption key file")
+	nextKey := flags.String("output-key", "", "New key file; must not exist")
 	address := flags.String("url", "http://127.0.0.1:8080/api/readyz", "Health check URL")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -225,6 +227,22 @@ func maintenance(command string, args []string) int {
 	}
 	var err error
 	switch command {
+	case "rotate-connection-key":
+		if *nextKey == "" {
+			err = errors.New("--output-key is required")
+			break
+		}
+		var store *Store
+		store, err = OpenStore(*db)
+		if err != nil {
+			break
+		}
+		if *keyFile != "" {
+			store.keyPath = *keyFile
+		}
+		err = store.RotateConnectionKey(*nextKey)
+		store.Close()
+
 	case "backup":
 		if *output == "" {
 			err = errors.New("--output is required")

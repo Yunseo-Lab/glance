@@ -22,6 +22,7 @@ func testStore(t *testing.T) *Store {
 	if err != nil {
 		t.Fatal(err)
 	}
+	s.keyPath = filepath.Join(t.TempDir(), "fixture-master.key")
 	t.Cleanup(func() { s.Close() })
 	return s
 }

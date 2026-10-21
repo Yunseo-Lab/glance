@@ -10,8 +10,9 @@ var ErrNotFound = errors.New("대상을 찾을 수 없습니다")
 // DashboardService owns application operations. HTTP is an adapter, not the
 // owner of persistence, validation or source-refresh policy.
 type DashboardService struct {
-	store   *Store
-	runtime *Runtime
+	providers *Providers
+	store     *Store
+	runtime   *Runtime
 }
 
 func (s *DashboardService) Board(id string) (Board, error) {

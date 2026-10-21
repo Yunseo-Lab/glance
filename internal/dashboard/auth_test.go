@@ -1,16 +1,23 @@
 package dashboard
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
 func authRequest(handler http.Handler, path, body, origin string, cookie *http.Cookie) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", "http://localhost"+path, strings.NewReader(body))
+	base := os.Getenv("GLANCE_DASHBOARD_PUBLIC_URL")
+	if base == "" {
+		base = "http://localhost"
+	}
+	r := httptest.NewRequest("POST", base+path, strings.NewReader(body))
 	r.Header.Set("Origin", origin)
+	r.Header.Set("Content-Type", "application/json")
 	if cookie != nil {
 		r.AddCookie(cookie)
 	}
@@ -28,7 +35,7 @@ func TestOwnerSessionLoginExpiryTamperAndLogout(t *testing.T) {
 	if w := authRequest(mux, "/api/v1/auth/login", `{"password":"test-owner-password-long-enough"}`, "http://evil.example", nil); w.Code != 403 {
 		t.Fatal(w.Code)
 	}
-	w := authRequest(mux, "/api/v1/auth/login", `{"password":"test-owner-password-long-enough"}`, "http://localhost", nil)
+	w := authRequest(mux, "/api/v1/auth/login", `{"password":"test-owner-password-long-enough"}`, "https://dashboard.example", nil)
 	if w.Code != 200 {
 		t.Fatalf("login: %d %s", w.Code, w.Body.String())
 	}
@@ -57,7 +64,7 @@ func TestOwnerSessionLoginExpiryTamperAndLogout(t *testing.T) {
 		t.Fatal("expired cookie accepted")
 	}
 	now = now.Add(-sessionLifetime - time.Second)
-	if w = authRequest(mux, "/api/v1/auth/logout", "", "http://localhost", cookie); w.Code != 200 {
+	if w = authRequest(mux, "/api/v1/auth/logout", "", "https://dashboard.example", cookie); w.Code != 200 {
 		t.Fatal(w.Code)
 	}
 	if a.authenticated(r) {
@@ -88,5 +95,37 @@ func TestOwnerTokenFileAndConflictingConfiguration(t *testing.T) {
 	t.Setenv("GLANCE_DASHBOARD_TOKEN_FILE", "/not-used")
 	if _, err := loadOwnerToken(); err == nil {
 		t.Fatal("conflicting credential sources accepted")
+	}
+}
+
+func TestBasicFailuresAreBoundedAndForwardedHeadersCannotBypassThem(t *testing.T) {
+	auth := newOwnerAuth("a-long-owner-fixture-password")
+	now := time.Now()
+	auth.now = func() time.Time { return now }
+	request := httptest.NewRequest("GET", "/api/v1/dashboard", nil)
+	request.RemoteAddr = "192.0.2.1:1234"
+	for i := 0; i < 200; i++ {
+		request.SetBasicAuth("owner", "a-long-owner-fixture-password")
+		if !auth.authenticated(request) {
+			t.Fatal("valid reads consumed failure quota")
+		}
+	}
+	for i := 0; i < 10; i++ {
+		request.Header.Set("X-Forwarded-For", fmt.Sprintf("203.0.113.%d", i))
+		request.SetBasicAuth("owner", "wrong")
+		if auth.authenticated(request) {
+			t.Fatal("wrong Basic credential accepted")
+		}
+	}
+	request.SetBasicAuth("owner", "a-long-owner-fixture-password")
+	if auth.authenticated(request) {
+		t.Fatal("failure limit bypassed")
+	}
+	now = now.Add(time.Minute + time.Second)
+	if !auth.authenticated(request) {
+		t.Fatal("expired Basic limit not recovered")
+	}
+	if len(auth.basicAttempts) > 1 {
+		t.Fatal("forged forwarding addresses created rate-limit identities")
 	}
 }

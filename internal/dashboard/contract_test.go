@@ -1,10 +1,14 @@
 package dashboard
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"gopkg.in/yaml.v3"
 	"os"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -27,7 +31,7 @@ func TestOpenAPIModelsAndCatalogDoNotDrift(t *testing.T) {
 	if err = yaml.Unmarshal(data, &document); err != nil {
 		t.Fatal(err)
 	}
-	for name, model := range map[string]any{"Board": Board{}, "Widget": Widget{}, "Source": Source{}, "FeedData": FeedData{}, "WeatherData": WeatherData{}, "Snapshot": Snapshot{}, "Link": Link{}, "Error": ErrorResponse{}} {
+	for name, model := range map[string]any{"Board": Board{}, "Widget": Widget{}, "Source": Source{}, "FeedData": FeedData{}, "WeatherData": WeatherData{}, "Snapshot": Snapshot{}, "Link": Link{}, "Error": ErrorResponse{}, "Connection": Connection{}, "SourceStatus": SourceStatus{}, "ConnectionTestReport": ConnectionTestReport{}} {
 		schema, ok := document.Components.Schemas[name]
 		if !ok {
 			t.Fatal("missing API model", name)
@@ -63,5 +67,50 @@ func TestOpenAPIModelsAndCatalogDoNotDrift(t *testing.T) {
 		if !slices.Equal(actual, definitions) {
 			t.Errorf("%s type enum drift", schemaName)
 		}
+	}
+}
+
+func TestEveryRegisteredAPIHasAnOpenAPIContract(t *testing.T) {
+	data, err := os.ReadFile("../../docs/dashboard-api.openapi.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document struct {
+		Paths map[string]map[string]any `yaml:"paths"`
+	}
+	if err = yaml.Unmarshal(data, &document); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"server.go", "auth.go", "boards_http.go", "connections_http.go"} {
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || len(call.Args) == 0 {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || selector.Sel.Name != "HandleFunc" {
+				return true
+			}
+			literal, ok := call.Args[0].(*ast.BasicLit)
+			if !ok {
+				return true
+			}
+			value, err := strconv.Unquote(literal.Value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			parts := strings.Fields(value)
+			if len(parts) != 2 || !strings.HasPrefix(parts[1], "/api/") {
+				return true
+			}
+			if document.Paths[parts[1]][strings.ToLower(parts[0])] == nil {
+				t.Errorf("undocumented API: %s", value)
+			}
+			return true
+		})
 	}
 }

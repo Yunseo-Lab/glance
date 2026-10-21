@@ -26,6 +26,7 @@ test.beforeAll(async () => {
         GLANCE_DASHBOARD_TOKEN: password,
         GLANCE_DASHBOARD_TOKEN_FILE: "",
         GLANCE_DASHBOARD_PUBLIC_URL: "",
+        GLANCE_CONNECTION_KEY_FILE: "",
       },
       stdio: "ignore",
     },

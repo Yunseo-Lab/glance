@@ -19,6 +19,9 @@ import (
 )
 
 type Providers struct {
+	resolve    func(context.Context, string) ([]net.IP, error)
+	proxy      func(*http.Request) (*url.URL, error)
+	dial       func(context.Context, string, string) (net.Conn, error)
 	store      *Store
 	client     *http.Client
 	proxyHosts map[string]bool
@@ -32,7 +35,7 @@ func (p *Providers) checkRequest(req *http.Request) error {
 	if ip := net.ParseIP(host); ip != nil && !publicIP(ip) {
 		return errors.New("private network destination rejected")
 	}
-	proxy, err := http.ProxyFromEnvironment(req)
+	proxy, err := p.proxyFor(req)
 	if err != nil {
 		return err
 	}
@@ -45,7 +48,7 @@ func (p *Providers) checkRequest(req *http.Request) error {
 		}
 		return nil
 	}
-	return checkDestination(req.Context(), req.URL)
+	return p.checkDestination(req.Context(), req.URL)
 }
 
 func publicIP(ip net.IP) bool {
@@ -65,11 +68,11 @@ func publicIP(ip net.IP) bool {
 	}
 	return true
 }
-func checkDestination(ctx context.Context, u *url.URL) error {
+func (p *Providers) checkDestination(ctx context.Context, u *url.URL) error {
 	if _, err := publicURL(u.String()); err != nil {
 		return err
 	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", u.Hostname())
+	ips, err := p.resolveHost(ctx, u.Hostname())
 	if err != nil {
 		return err
 	}
@@ -84,7 +87,7 @@ func checkDestination(ctx context.Context, u *url.URL) error {
 	return nil
 }
 func NewProviders(stores ...*Store) *Providers {
-	p := &Providers{proxyHosts: map[string]bool{"github.com": true, "raw.githubusercontent.com": true, "api.open-meteo.com": true}}
+	p := &Providers{proxyHosts: map[string]bool{"github.com": true, "api.github.com": true, "raw.githubusercontent.com": true, "api.open-meteo.com": true}}
 	for _, host := range strings.Split(os.Getenv("GLANCE_DASHBOARD_FEED_HOSTS"), ",") {
 		host = strings.ToLower(strings.TrimSpace(host))
 		if host != "" && !strings.ContainsAny(host, "/:@*") && host != "localhost" && !strings.HasSuffix(host, ".local") && !strings.HasSuffix(host, ".internal") {
@@ -103,14 +106,14 @@ func NewProviders(stores ...*Store) *Providers {
 			return nil, err
 		}
 		// A configured proxy is trusted infrastructure, not a user destination.
-		proxy, err := http.ProxyFromEnvironment(&http.Request{URL: &url.URL{Scheme: "https", Host: "example.com"}})
+		proxy, err := p.proxyFor(&http.Request{URL: &url.URL{Scheme: "https", Host: "example.com"}})
 		if err != nil {
 			return nil, err
 		}
 		if proxy != nil && host == proxy.Hostname() {
-			return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, address)
+			return p.dialHost(ctx, network, address)
 		}
-		ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+		ips, err := p.resolveHost(ctx, host)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +124,7 @@ func NewProviders(stores ...*Store) *Providers {
 		}
 		var last error
 		for _, ip := range ips {
-			conn, err := (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+			conn, err := p.dialHost(ctx, network, net.JoinHostPort(ip.String(), port))
 			if err == nil {
 				return conn, nil
 			}
@@ -133,6 +136,9 @@ func NewProviders(stores ...*Store) *Providers {
 		return nil, last
 	}
 	p.client = &http.Client{Transport: transport, Timeout: 8 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) > 0 && req.URL.Host != via[0].URL.Host {
+			req.Header.Del("Authorization")
+		}
 		if len(via) >= 5 {
 			return errors.New("too many redirects")
 		}
@@ -237,6 +243,9 @@ func (p *Providers) fetchRSS(ctx context.Context, s Source) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := validateFeedDocument(data); err != nil {
+		return nil, err
+	}
 	feed, err := gofeed.NewParser().Parse(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -282,4 +291,23 @@ func parseWeather(data []byte, c WeatherSource) (WeatherData, error) {
 		return WeatherData{}, errors.New("missing current weather data")
 	}
 	return WeatherData{Location: c.Location, Temperature: *body.Current.Temperature, FeelsLike: body.Current.FeelsLike, Humidity: body.Current.Humidity, Code: body.Current.Code}, nil
+}
+
+func (p *Providers) resolveHost(ctx context.Context, host string) ([]net.IP, error) {
+	if p.resolve != nil {
+		return p.resolve(ctx, host)
+	}
+	return net.DefaultResolver.LookupIP(ctx, "ip", host)
+}
+func (p *Providers) proxyFor(request *http.Request) (*url.URL, error) {
+	if p.proxy != nil {
+		return p.proxy(request)
+	}
+	return http.ProxyFromEnvironment(request)
+}
+func (p *Providers) dialHost(ctx context.Context, network, address string) (net.Conn, error) {
+	if p.dial != nil {
+		return p.dial(ctx, network, address)
+	}
+	return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, address)
 }

@@ -86,8 +86,7 @@ func replaceSourceRefs(tx *sql.Tx, boardID string, sources []Source) error {
 	}
 	// Removing a layout reference never deletes an owner's saved entry. SQLite
 	// preserves entries and state while dropping only the orphan source pointer.
-	_, err := tx.Exec("DELETE FROM sources WHERE owner_id='local' AND NOT EXISTS(SELECT 1 FROM board_sources r WHERE r.source_id=sources.id)")
-	return err
+	return purgeUnusedSources(tx)
 }
 func (s *Store) Sources() ([]Source, error) {
 	rows, err := s.db.Query("SELECT s.document FROM sources s WHERE s.owner_id='local' AND EXISTS(SELECT 1 FROM board_sources r JOIN boards b ON b.id=r.board_id WHERE r.source_id=s.id AND b.owner_id='local') ORDER BY s.id")

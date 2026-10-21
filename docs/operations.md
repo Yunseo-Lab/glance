@@ -127,3 +127,38 @@ GitHub Dashboard CI는 Go race/vet, 브라우저, 의존성 및 실제 컨테이
 수행합니다. 수동 release-candidate workflow는 Linux/macOS 바이너리와 체크섬을
 아티팩트로 만듭니다. 원격 CI와 실제 맥 검증 결과를 확인한 후 운영에 적용하세요.
 측정 결과와 외부 미완료 항목은 [출시 체크리스트](release-readiness.md)에 있습니다.
+
+## 개인 연결 암호화 키
+
+연결을 처음 생성할 때 기본값으로 `DB경로.key`에 0600 key file을 만듭니다.
+`GLANCE_CONNECTION_KEY_FILE`로 별도의 보호된 파일 경로를 지정할 수 있습니다.
+키는 SQLite DB 안에 넣지 않으며, private calendar URL과 API token은 AES-GCM으로
+암호화합니다. 응답에는 연결 이름·공개 origin·비밀정보 유무만 나옵니다.
+**DB 백업과 키 파일은 별도로 보관해야 합니다.** DB만 복원하고 원래 키가 없으면
+기존 ciphertext를 위해 새 키를 만들지 않고 연결을 잠급니다.
+
+키 교체는 앱을 중단한 유지보수 시간에 수행합니다. 기존 key와 교체 직전 자동
+DB 백업을 보존합니다. 새 key 경로는 존재하지 않아야 합니다.
+
+```sh
+./build/glance dashboard rotate-connection-key --db data/dashboard.db \
+  --key-file data/dashboard.db.key --output-key data/dashboard-key-v2.key
+```
+
+성공하면 `GLANCE_CONNECTION_KEY_FILE`을 새 파일로 바꾸고 앱을 재시작한 뒤
+연결 테스트를 다시 실행합니다. 실패하면 DB 트랜잭션은 rollback되며 이 명령이
+만든 새 key는 제거됩니다. 이전 DB 백업은 이전 key와 짝으로 복구합니다.
+원래 key나 현재 정상 key를 보관 정책 확인 없이 삭제하지 마세요.
+Docker에서 기본 key는 persistent data volume에 생깁니다. DB export script는
+key를 포함하지 않으므로 key도 별도 비밀 백업 경로로 옮겨야 합니다.
+읽기 전용 Docker secret key를 쓰면 `/run/secrets`의 0444 mount를 허용하지만,
+호스트의 상위 `.secrets` 디렉터리는 개인 계정만 접근하도록 유지합니다.
+
+자동 갱신은 브라우저가 닫혀도 실행되지만 맥이 잠들거나 꺼지면 멈춥니다.
+소스별 수동 갱신은 30초 대기 및 전체 10회/분 한도를 적용하고 upstream의
+Retry-After를 유지합니다. `/api/v1/sources`와 `/api/v1/diagnostics`는 인증 후
+소스 상태·마지막 성공·실행 중 작업을 반환하며 비밀정보와 응답 본문은 제외합니다.
+사용하지 않는 소스는 정리하고, 저장하지 않은 entry는 90일 뒤 정리합니다.
+사용자가 저장한 entry와 메모·북마크는 이 보관 정리로 삭제하지 않습니다.
+운영 HTTP 서버는 미등록 Host를 거부하므로 HTTPS proxy에는 정확한
+`GLANCE_DASHBOARD_PUBLIC_URL`을 설정하고 원래 Host를 전달해야 합니다.

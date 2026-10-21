@@ -86,23 +86,4 @@ func (s *Store) CreateBoard(title string, template *Board) (Board, error) {
 	}
 	return board, nil
 }
-func (s *Store) DeleteBoard(id string, revision int64) error {
-	if id == "home" {
-		return ErrProtectedBoard
-	}
-	result, err := s.db.Exec("DELETE FROM boards WHERE id=? AND owner_id='local' AND revision=?", id, revision)
-	if err != nil {
-		return err
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		if _, err = s.GetBoard(id); errors.Is(err, ErrNotFound) {
-			return ErrNotFound
-		}
-		return ErrConflict
-	}
-	return nil
-}
+func (s *Store) DeleteBoard(id string, revision int64) error { return s.deleteBoard(id, revision) }

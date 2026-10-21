@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -16,8 +17,11 @@ import (
 var ErrConflict = errors.New("다른 창에서 대시보드가 변경되었습니다. 새로고침 후 다시 편집하세요")
 
 type Store struct {
-	db   *sql.DB
-	path string
+	vaultMu sync.Mutex
+	vault   *Vault
+	keyPath string
+	db      *sql.DB
+	path    string
 }
 
 func OpenStore(path string) (*Store, error) {
@@ -42,7 +46,7 @@ func OpenStore(path string) (*Store, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	s := &Store{db: db, path: abs}
+	s := &Store{db: db, path: abs, keyPath: os.Getenv("GLANCE_CONNECTION_KEY_FILE")}
 	if err = s.init(); err != nil {
 		db.Close()
 		return nil, err

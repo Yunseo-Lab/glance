@@ -45,8 +45,7 @@ func apiError(w http.ResponseWriter, status int, message string) {
 
 // Validation previews share commit validation without touching storage or providers.
 func readMutation(w http.ResponseWriter, r *http.Request, dst any) bool {
-	origin, err := url.Parse(r.Header.Get("Origin"))
-	if err != nil || origin.Host != r.Host || (origin.Scheme != "https" && origin.Scheme != "http") || r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+	if !sameOrigin(r) {
 		apiError(w, 403, "같은 사이트에서만 설정을 처리할 수 있습니다")
 		return false
 	}
@@ -88,10 +87,11 @@ func readBoardRequest(w http.ResponseWriter, r *http.Request) (Board, bool) {
 
 func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 	mux := http.NewServeMux()
-	service := &DashboardService{store: store, runtime: runtime}
+	service := &DashboardService{store: store, runtime: runtime, providers: NewProviders(store)}
 	auth := newOwnerAuth(token)
 	auth.register(mux)
 	registerBoardRoutes(mux, service)
+	registerConnectionRoutes(mux, service)
 	mux.HandleFunc("GET /api/v1/limits", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Limits()) })
 	mux.HandleFunc("GET /api/v1/catalog", func(w http.ResponseWriter, r *http.Request) { jsonResponse(w, 200, Catalog()) })
 	mux.HandleFunc("GET /api/readyz", func(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +196,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 func Run(args []string) int {
 	if len(args) > 0 {
 		switch args[0] {
-		case "backup", "restore", "verify-backup", "healthcheck":
+		case "backup", "restore", "verify-backup", "healthcheck", "rotate-connection-key":
 			return maintenance(args[0], args[1:])
 		}
 	}
@@ -245,7 +245,7 @@ func Run(args []string) int {
 	runtime := NewRuntime(store, NewProviders(store).FetchCached)
 	defer runtime.Close()
 	runtime.StartScheduler()
-	server := &http.Server{Addr: *listen, Handler: NewHandler(store, runtime, token), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := dashboardHTTPServer(*listen, guardHost(NewHandler(store, runtime, token), os.Getenv("GLANCE_DASHBOARD_PUBLIC_URL")))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	shutdownDone := make(chan struct{})
@@ -271,4 +271,8 @@ func Run(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+func dashboardHTTPServer(address string, handler http.Handler) *http.Server {
+	return &http.Server{Addr: address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 }

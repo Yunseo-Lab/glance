@@ -13,12 +13,144 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/connections:
+    get:
+      operationId: listConnections
+      responses:
+        '200':
+          description: Safe owner connection metadata; never includes ciphertext, tokens or private calendar URLs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connection'
+    post:
+      operationId: createConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionInput'
+      responses:
+        '201':
+          description: Encrypted connection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '503':
+          description: Original encryption key unavailable; never replaced for existing ciphertext
+  /api/v1/connections/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getConnection
+      responses:
+        '200':
+          description: Safe connection metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+    delete:
+      operationId: deleteConnection
+      responses:
+        '200':
+          description: Unreferenced owner connection removed
+        '409':
+          description: Remove referring sources first
+  /api/v1/connections/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: testConnection
+      responses:
+        '200':
+          description: Endpoint-tested capability, not a claim of access to every private resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestReport'
+        '429':
+          description: Connection test cooldown; Retry-After header
+  /api/v1/connections/{id}/revoke:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: revokeConnection
+      responses:
+        '200':
+          description: Secret cleared, referring sources paused and old generations invalidated
+  /api/v1/sources/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: deleteSource
+      responses:
+        '200':
+          description: Unreferenced source removed; saved reading state preserved
+        '409':
+          description: Remove board references first
+  /api/v1/boards/{id}/validate:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: validateBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Board'
+      responses:
+        '200':
+          description: Preview-only validation; no persistence or fetch
+  /api/v1/boards/{id}/snapshots:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getBoardSnapshots
+      responses:
+        '200':
+          description: Snapshot map for the owner board
   /api/v1/sources:
     get:
       operationId: getSourceStatuses
       responses:
         '200':
           description: Owner sources with board references, safe snapshot metadata, pause and job states; excludes snapshot body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SourceStatus'
   /api/v1/diagnostics:
     get:
       operationId: getDiagnostics
@@ -485,3 +617,87 @@ components:
           type: integer
         code:
           type: integer
+
+    Connection:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, endpoint, hasSecret, generation, status, createdAt]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [github, calendar, json]
+        name:
+          type: string
+        endpoint:
+          type: string
+          description: Public origin only; private paths and query tokens are encrypted
+        hasSecret:
+          type: boolean
+        generation:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastTestedAt:
+          type: string
+          format: date-time
+    ConnectionInput:
+      type: object
+      additionalProperties: false
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        kind:
+          type: string
+          enum: [github, calendar, json]
+        endpoint:
+          type: string
+          description: Required for calendar/json; stored encrypted. GitHub uses api.github.com.
+        token:
+          type: string
+          format: password
+          maxLength: 4096
+    ConnectionTestReport:
+      type: object
+      required: [connected, capabilities]
+      properties:
+        connected:
+          type: boolean
+        identity:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        errorCode:
+          type: string
+    SourceStatus:
+      type: object
+      required: [source, boardIds, paused, generation, snapshot, running]
+      properties:
+        source:
+          $ref: '#/components/schemas/Source'
+        boardIds:
+          type: array
+          items:
+            type: string
+        paused:
+          type: boolean
+        generation:
+          type: integer
+        snapshot:
+          $ref: '#/components/schemas/Snapshot'
+        running:
+          type: boolean
+        nextRunAt:
+          type: string
+          format: date-time
+        nextManualAt:
+          type: string
+          format: date-time

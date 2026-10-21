@@ -32,6 +32,11 @@ CREATE INDEX due_refresh_jobs ON refresh_jobs(next_run,lease_until);`},
 	{"refresh source generation fence", `ALTER TABLE refresh_jobs ADD COLUMN source_generation INTEGER NOT NULL DEFAULT 1;`},
 	{"manual refresh budgets", `ALTER TABLE refresh_jobs ADD COLUMN manual_next_allowed INTEGER NOT NULL DEFAULT 0;
 CREATE TABLE manual_refresh_log(id INTEGER PRIMARY KEY,requested_at INTEGER NOT NULL);`},
+	{"safe connection metadata", `ALTER TABLE connections ADD COLUMN name TEXT NOT NULL DEFAULT '';
+ALTER TABLE connections ADD COLUMN generation INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE connections ADD COLUMN status TEXT NOT NULL DEFAULT 'unverified';
+ALTER TABLE connections ADD COLUMN created_at TEXT NOT NULL DEFAULT '';
+ALTER TABLE connections ADD COLUMN last_tested_at TEXT NOT NULL DEFAULT '';`},
 }
 
 func schemaVersion() int { return len(migrations) }
