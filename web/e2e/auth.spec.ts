@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const password = randomBytes(32).toString("base64url");
 const origin = "http://127.0.0.1:8094";
 let server: ChildProcess, directory: string;
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   directory = mkdtempSync(join(tmpdir(), "glance-auth-"));
   server = spawn(
     fileURLToPath(new URL("../../build/glance", import.meta.url)),
@@ -41,7 +41,7 @@ test.beforeAll(async () => {
     })
     .toBe(200);
 });
-test.afterAll(async () => {
+test.afterEach(async () => {
   if (server && server.exitCode === null) {
     const exited = new Promise((resolve) => server.once("exit", resolve));
     server.kill("SIGTERM");
@@ -106,4 +106,14 @@ test("session loss returns to login while preserving an unsaved draft", async ({
   await expect(page.getByLabel("대시보드 이름")).toHaveValue(
     "세션 복구 후에도 유지",
   );
+});
+
+test('logout removes private query responses and a new login fetches current connection metadata',async({page,request})=>{
+ await page.goto(origin);await page.getByLabel('비밀번호',{exact:true}).fill(password);await page.getByRole('button',{name:'로그인',exact:true}).click();await page.getByRole('button',{name:'데이터 소스',exact:true}).click();
+ await expect(page.getByText('아직 개인 연결이 없습니다.',{exact:false})).toBeVisible();
+ let reads=0;page.on('request',req=>{if(req.url()===origin+'/api/v1/connections'&&req.method()==='GET')reads++});
+ await page.getByRole('button',{name:'로그아웃',exact:true}).click();await expect(page.getByRole('heading',{name:'나의 공간에 로그인'})).toBeVisible();
+ const created=await request.post(origin+'/api/v1/connections',{headers:{Origin:origin,Authorization:'Basic '+Buffer.from('owner:'+password).toString('base64')},data:{name:'새 세션 연결',kind:'github',token:'fixture_not_used_for_network'}});expect(created.status()).toBe(201);
+ await page.getByLabel('비밀번호',{exact:true}).fill(password);await page.getByRole('button',{name:'로그인',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'새 세션 연결',exact:true})).toBeVisible();expect(reads).toBeGreaterThan(0);
 });

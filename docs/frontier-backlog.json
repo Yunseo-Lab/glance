@@ -766,11 +766,14 @@
       "depends_on": [
         "F038"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "web/e2e/connections.spec.ts: 2 passed",
+        "web/src/workspace/ConnectionManager.tsx"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-21T23:45:29+00:00",
-      "progress_note": "연결 추가·권한 테스트·철회·삭제·소스 일시정지/갱신/참조 보드 이동을 관리 화면에 연결한다.",
+      "updated_at": "2026-10-21T23:51:51+00:00",
+      "progress_note": "개인 연결 생성·명시적 검사·대체 연결 생성·철회·삭제, 소스 정지/계속/갱신과 참조 보드 이동을 구현했다. 가짜 토큰은 외부 전송 없이 검사 실패를 모킹했다.",
       "started_at": "2026-10-21T23:45:29+00:00"
     },
     {
@@ -782,9 +785,16 @@
       "depends_on": [
         "F039"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f040-e2e.log: 28 passed; login quota isolation fixed in test fixture",
+        "f040-auth.log: all 3 auth/session/cache tests passed",
+        "web/e2e/queries.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:53:57+00:00",
+      "progress_note": "서버 조회에 private query key, abort, 재시도, mutation 무효화, online/visible 재조회와 logout/401 캐시 제거를 통합했다. 서버 상태와 미저장 editor draft를 분리했다.",
+      "started_at": "2026-10-21T23:51:51+00:00"
     },
     {
       "id": "F041",
@@ -795,9 +805,15 @@
       "depends_on": [
         "F040"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f041-e2e.log: 31 passed",
+        "web/e2e/editor-reducer.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:56:06+00:00",
+      "progress_note": "명령 reducer로 저장본·초안·편집 상태를 분리했다. 참조 보존/정리, 유효한 이동, 중복 ID·한도·다른 보드 치환 거부와 취소/저장 경계를 검증했다.",
+      "started_at": "2026-10-21T23:53:57+00:00"
     },
     {
       "id": "F042",
@@ -808,9 +824,12 @@
       "depends_on": [
         "F041"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:56:06+00:00",
+      "progress_note": "React 19.3.1 StrictMode에서 dnd-kit 6.3.1/sortable 10.0.0과 GridStack 14.0.0의 실제 번들·키보드·모바일 터치·DOM 순서 fixture를 비교한다.",
+      "started_at": "2026-10-21T23:56:06+00:00"
     },
     {
       "id": "F043",

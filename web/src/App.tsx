@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import {editorReducer,initialEditor,pruneBoard as prune} from "./editor/reducer";
+import {queryClient,queryOptions,clearPrivateQueries} from "./workspace/queries";
+import {useResource} from "./workspace/useResource";
+import { useEffect, useRef, useState, useReducer } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -61,18 +64,8 @@ const icons = {
 };
 type Category = "all" | "news" | "daily";
 
-function prune(board: Board): Board {
-  const used = new Set(board.widgets.map((widget) => widget.sourceId));
-  return {
-    ...board,
-    sources: board.sources.filter((source) => used.has(source.id)),
-  };
-}
-
 export default function App() {
-  const [saved, setSaved] = useState<Board>();
-  const [draft, setDraft] = useState<Board>();
-  const [editing, setEditing] = useState(false);
+  const [{saved,draft,editing},dispatchEditor]=useReducer(editorReducer,initialEditor);
   const [editor, setEditor] = useState<Widget | "new" | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -100,7 +93,7 @@ export default function App() {
   const boardID = route.boardID;
   const boardEndpoint =
     boardID === "home" ? "/api/v1/dashboard" : `/api/v1/boards/${boardID}`;
-  const [boards, setBoards] = useState<Board[]>([]);
+  const {data:boards=[]}=useResource<Board[]>("/api/v1/boards",0,!authRequired);
   const {
     snapshots,
     error: connectionError,
@@ -112,14 +105,6 @@ export default function App() {
     boardID,
   );
 
-  useEffect(() => {
-    if (authRequired) return;
-    const controller = new AbortController();
-    request<Board[]>("/api/v1/boards", { signal: controller.signal })
-      .then(setBoards)
-      .catch(() => {});
-    return () => controller.abort();
-  }, [authRequired, saved?.revision, loadAttempt]);
   useEffect(() => {
     const expired = () => {
       setAuthRequired(true);
@@ -169,8 +154,8 @@ export default function App() {
           revision: saved.revision,
         }),
       });
-      setDraft(structuredClone(validated));
-      setEditing(true);
+      dispatchEditor({type:"replace",board:validated});
+      dispatchEditor({type:"begin"});
       setCategory("all");
       setQuery("");
       setNotice("설정을 불러왔습니다. 확인한 뒤 대시보드 저장을 눌러주세요.");
@@ -194,18 +179,15 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     if (saved?.id !== boardID) {
-      setSaved(undefined);
-      setDraft(undefined);
-      setEditing(false);
+      dispatchEditor({type:"clear"});
       setEditor(null);
       setConflict(false);
       setCategory("all");
       setQuery("");
     }
-    request<Board>(boardEndpoint, { signal: controller.signal })
+    queryClient.fetchQuery({...queryOptions<Board>(boardEndpoint),staleTime:0,queryFn:({signal})=>request<Board>(boardEndpoint,{signal:AbortSignal.any([signal,controller.signal])})})
       .then((board) => {
-        setSaved(board);
-        setDraft(structuredClone(board));
+        dispatchEditor({type:"load",board});
         setError("");
       })
       .catch((err) => {
@@ -246,9 +228,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prune({ ...board, title: board.title.trim() })),
       });
-      setSaved(result);
-      setDraft(structuredClone(result));
-      setEditing(false);
+      dispatchEditor({type:"load",board:result});
       setNotice("변경 사항을 저장했습니다.");
     } catch (err) {
       setError((err as Error).message);
@@ -259,61 +239,26 @@ export default function App() {
   }
   function updateWidget(widget: Widget, source?: Source) {
     if (!draft) return;
-    let widgets = [...draft.widgets];
-    const index = widgets.findIndex((w) => w.id === widget.id);
-    if (index === -1) {
-      widgets.push(widget);
-      setCategory("all");
-      setQuery("");
-      setFocusWidgetId(widget.id);
-    } else widgets[index] = widget;
-    const sources = source
-      ? [...draft.sources.filter((s) => s.id !== source.id), source]
-      : draft.sources;
-    setDraft(prune({ ...draft, widgets, sources }));
+    if(!draft.widgets.some(item=>item.id===widget.id)){setCategory("all");setQuery("");setFocusWidgetId(widget.id)}
+    dispatchEditor({type:"upsert",widget,source});
     setEditor(null);
     setNotice("대시보드 저장을 눌러 변경 사항을 보관하세요.");
   }
-  function move(id: string, to: number) {
-    if (!draft) return;
-    const widgets = [...draft.widgets],
-      from = widgets.findIndex((w) => w.id === id);
-    if (from < 0 || to < 0 || to >= widgets.length) return;
-    widgets.splice(to, 0, widgets.splice(from, 1)[0]);
-    setDraft({ ...draft, widgets });
-  }
-  function duplicateWidget(id: string) {
-    if (!draft || saving || draft.widgets.length >= 32) return;
-    const index = draft.widgets.findIndex((widget) => widget.id === id);
-    if (index < 0) return;
-    const copy = structuredClone(draft.widgets[index]);
-    copy.id = crypto.randomUUID();
-    let title = "";
-    for (const char of copy.title) {
-      if (new TextEncoder().encode(title + char).length > 90) break;
-      title += char;
-    }
-    copy.title = `${title} 복사`;
-    const widgets = [...draft.widgets];
-    widgets.splice(index + 1, 0, copy);
-    // The source is shared until the editor explicitly changes its query.
-    setDraft({ ...draft, widgets });
-    setCategory("all");
-    setQuery("");
-    setFocusWidgetId(copy.id);
-    setNotice("위젯을 복제했습니다. 대시보드 저장을 눌러 보관하세요.");
+  function move(id:string,to:number){dispatchEditor({type:"move",id,to})}
+  function duplicateWidget(id:string){
+    if(!draft||saving||draft.widgets.length>=32)return;
+    const newID=crypto.randomUUID();dispatchEditor({type:"duplicate",id,newID});setCategory("all");setQuery("");setFocusWidgetId(newID);setNotice("위젯을 복제했습니다. 대시보드 저장을 눌러 보관하세요.");
   }
   function beginAdd() {
     navigate("board");
     if (!draft || draft.widgets.length >= 32) return;
-    setEditing(true);
+    dispatchEditor({type:"begin"});
     setEditor("new");
   }
   function discardDraft(): boolean {
     if (dirty && !window.confirm("저장하지 않은 변경 사항을 버릴까요?"))
       return false;
-    if (saved) setDraft(structuredClone(saved));
-    setEditing(false);
+    dispatchEditor({type:"cancel"});
     setError("");
     setNotice("변경 사항을 취소했습니다.");
     return true;
@@ -329,9 +274,7 @@ export default function App() {
     setSaving(true);
     try {
       const board = await request<Board>(boardEndpoint);
-      setSaved(board);
-      setDraft(structuredClone(board));
-      setEditing(false);
+      dispatchEditor({type:"load",board});
       setError("");
       setConflict(false);
       setNotice("최신 설정을 불러왔습니다.");
@@ -522,7 +465,7 @@ export default function App() {
                   ...draft,
                   theme: draft.theme === "light" ? "dark" : "light",
                 };
-                if (editing) setDraft(next);
+                if (editing) dispatchEditor({type:"theme",theme:next.theme});
                 else void persist(next);
               }}
             >
@@ -544,10 +487,9 @@ export default function App() {
                   try {
                     await request("/api/v1/auth/logout", { method: "POST" });
                     setAuthRequired(true);
-                    setBoards([]);
-                    setSaved(undefined);
-                    setDraft(undefined);
-                    setEditing(false);
+                    clearPrivateQueries();
+                    window.dispatchEvent(new Event("glance:logout"));
+                    dispatchEditor({type:"clear"});
                     setEditor(null);
                     setError("");
                     setNotice("");
@@ -571,7 +513,7 @@ export default function App() {
           boards={boards}
         />
         <main id="main" tabIndex={-1}>
-          {route.page === "sources" && <SourcePanel boards={boards} />}
+          {route.page === "sources" && <SourcePanel boards={boards} onNavigate={id=>navigate("board",id)} onAddWidget={beginAdd}/>}
           {route.page === "inbox" && (
             <ReadingPanel board={saved} snapshots={snapshots} />
           )}
@@ -676,7 +618,7 @@ export default function App() {
                       className="button secondary"
                       disabled={saving}
                       onClick={() => {
-                        setEditing(true);
+                        dispatchEditor({type:"begin"});
                         setNotice("");
                       }}
                     >
@@ -756,7 +698,7 @@ export default function App() {
                   maxLength={30}
                   disabled={saving}
                   onChange={(event) =>
-                    setDraft({ ...draft, title: event.target.value })
+                    dispatchEditor({type:"title",title:event.target.value})
                   }
                 />
                 <span className="draft-status" aria-live="polite">
@@ -794,7 +736,7 @@ export default function App() {
                 )}
               </span>
             </div>
-            {saved.revision===1&&!editing&&<StarterTemplates onPreview={template=>{setDraft({...template,id:saved.id,title:saved.title,revision:saved.revision});setEditing(true);setCategory("all");setQuery("");setNotice("템플릿을 불러왔습니다. 확인 후 대시보드 저장을 눌러주세요.")}}/>}
+            {saved.revision===1&&!editing&&<StarterTemplates onPreview={template=>{dispatchEditor({type:"replace",board:{...template,id:saved.id,title:saved.title,revision:saved.revision}});dispatchEditor({type:"begin"});setCategory("all");setQuery("");setNotice("템플릿을 불러왔습니다. 확인 후 대시보드 저장을 눌러주세요.")}}/>}
 <div
               className={`widget-grid ${editing ? "is-editing" : ""}`}
               inert={saving}
@@ -872,14 +814,7 @@ export default function App() {
                             className="icon-button danger"
                             aria-label={`${widget.title} 삭제`}
                             onClick={() =>
-                              setDraft(
-                                prune({
-                                  ...draft,
-                                  widgets: draft.widgets.filter(
-                                    (w) => w.id !== widget.id,
-                                  ),
-                                }),
-                              )
+                              dispatchEditor({type:"remove",id:widget.id})
                             }
                           >
                             <Trash2 size={14} />
