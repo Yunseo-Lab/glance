@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -6,7 +6,9 @@ import {
   CloudSun,
   ExternalLink,
   LoaderCircle,
+  RefreshCw,
 } from "lucide-react";
+import { request, ApiError } from "./types";
 import type { FeedData, Snapshot, WeatherData, Widget } from "./types";
 
 function safeURL(value: string) {
@@ -80,107 +82,104 @@ function Calendar({ now }: { now: Date }) {
   );
 }
 
-interface WidgetProps { widget: Widget; snapshot?: Snapshot; now: Date; }
-const renderers: Record<Widget["type"], (props: WidgetProps) => React.ReactNode> = {
-clock: ({ widget, snapshot, now }) => {
-
-      return (
-        <div className="clock-view">
-          <span className="eyebrow">
-            {widget.config.timezone?.replaceAll("_", " ")}
-          </span>
-          <div className="clock-time">
+interface WidgetProps {
+  widget: Widget;
+  snapshot?: Snapshot;
+  now: Date;
+}
+const renderers: Record<
+  Widget["type"],
+  (props: WidgetProps) => React.ReactNode
+> = {
+  clock: ({ widget, snapshot, now }) => {
+    return (
+      <div className="clock-view">
+        <span className="eyebrow">
+          {widget.config.timezone?.replaceAll("_", " ")}
+        </span>
+        <div className="clock-time">
+          {new Intl.DateTimeFormat("en-GB", {
+            timeZone: widget.config.timezone,
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23",
+          }).format(now)}
+          <span>
             {new Intl.DateTimeFormat("en-GB", {
               timeZone: widget.config.timezone,
-              hour: "2-digit",
-              minute: "2-digit",
-              hourCycle: "h23",
+              second: "2-digit",
             }).format(now)}
-            <span>
-              {new Intl.DateTimeFormat("en-GB", {
-                timeZone: widget.config.timezone,
-                second: "2-digit",
-              }).format(now)}
-            </span>
-          </div>
-          <p>
-            {new Intl.DateTimeFormat("ko-KR", {
-              timeZone: widget.config.timezone,
-              month: "long",
-              day: "numeric",
-              weekday: "long",
-            }).format(now)}
-          </p>
-          <div className="clock-decoration" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-      );
-
-},
-calendar: ({ widget, snapshot, now }) => {
-
-      return <Calendar now={now} />;
-
-},
-note: ({ widget, snapshot, now }) => {
-
-      return (
-        <div className="note-view">
-          <p>{widget.config.body || "편집에서 첫 메모를 남겨보세요."}</p>
-          <span className="note-mark" aria-hidden="true">
-            ✳
           </span>
         </div>
-      );
-
-},
-bookmarks: ({ widget, snapshot, now }) => {
-
-      return (
-        <div className="bookmark-list">
-          {widget.config.links?.length ? (
-            widget.config.links.map((link, i) => (
-              <a
-                key={i}
-                href={safeURL(link.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="bookmark-letter">
-                  {link.title.slice(0, 1)}
-                </span>
-                <span>
-                  <strong>{link.title}</strong>
-                  <small>
-                    {(() => {
-                      try {
-                        return new URL(link.url).hostname;
-                      } catch {
-                        return "";
-                      }
-                    })()}
-                  </small>
-                </span>
-                <ArrowUpRight size={16} />
-              </a>
-            ))
-          ) : (
-            <p className="muted">편집에서 즐겨찾기를 추가하세요.</p>
-          )}
+        <p>
+          {new Intl.DateTimeFormat("ko-KR", {
+            timeZone: widget.config.timezone,
+            month: "long",
+            day: "numeric",
+            weekday: "long",
+          }).format(now)}
+        </p>
+        <div className="clock-decoration" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
         </div>
-      );
-
-},
-rss: ({ widget, snapshot, now }) => {
- {
+      </div>
+    );
+  },
+  calendar: ({ widget, snapshot, now }) => {
+    return <Calendar now={now} />;
+  },
+  note: ({ widget, snapshot, now }) => {
+    return (
+      <div className="note-view">
+        <p>{widget.config.body || "편집에서 첫 메모를 남겨보세요."}</p>
+        <span className="note-mark" aria-hidden="true">
+          ✳
+        </span>
+      </div>
+    );
+  },
+  bookmarks: ({ widget, snapshot, now }) => {
+    return (
+      <div className="bookmark-list">
+        {widget.config.links?.length ? (
+          widget.config.links.map((link, i) => (
+            <a
+              key={i}
+              href={safeURL(link.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="bookmark-letter">{link.title.slice(0, 1)}</span>
+              <span>
+                <strong>{link.title}</strong>
+                <small>
+                  {(() => {
+                    try {
+                      return new URL(link.url).hostname;
+                    } catch {
+                      return "";
+                    }
+                  })()}
+                </small>
+              </span>
+              <ArrowUpRight size={16} />
+            </a>
+          ))
+        ) : (
+          <p className="muted">편집에서 즐겨찾기를 추가하세요.</p>
+        )}
+      </div>
+    );
+  },
+  rss: ({ widget, snapshot, now }) => {
+    {
       const feed = snapshot?.data as FeedData | undefined;
       return (
         <>
@@ -214,14 +213,13 @@ rss: ({ widget, snapshot, now }) => {
               )}
             </div>
           )}
-          <Updated snapshot={snapshot} />
+          <Updated snapshot={snapshot} sourceID={widget.sourceId} />
         </>
       );
     }
-
-},
-weather: ({ widget, snapshot, now }) => {
- {
+  },
+  weather: ({ widget, snapshot, now }) => {
+    {
       const weather = snapshot?.data as WeatherData | undefined;
       const description = weather
         ? weather.code === 0
@@ -257,15 +255,19 @@ weather: ({ widget, snapshot, now }) => {
               </div>
             </div>
           )}
-          <Updated snapshot={snapshot} />
+          <Updated snapshot={snapshot} sourceID={widget.sourceId} />
         </>
       );
     }
-},
+  },
 };
-export default function WidgetView(props: WidgetProps) {return renderers[props.widget.type](props);}
+export default function WidgetView(props: WidgetProps) {
+  return renderers[props.widget.type](props);
+}
 
 function RemoteStatus({ snapshot }: { snapshot?: Snapshot }) {
+  if (snapshot?.state === "paused")
+    return <p className="source-notice">자동 갱신이 일시정지되었습니다.</p>;
   if (snapshot?.data)
     return snapshot.error ? (
       <p className="source-notice">갱신이 지연되어 마지막 정보를 표시합니다.</p>
@@ -286,21 +288,99 @@ function RemoteStatus({ snapshot }: { snapshot?: Snapshot }) {
     </div>
   );
 }
-function Updated({ snapshot }: { snapshot?: Snapshot }) {
+function Updated({
+  snapshot,
+  sourceID,
+}: {
+  snapshot?: Snapshot;
+  sourceID?: string;
+}) {
   return (
-    snapshot?.updatedAt && (
-      <p className="updated">
-        <span
-          className={
-            snapshot.state === "fresh" ? "status-dot" : "status-dot stale"
-          }
+    <div className="source-footer">
+      {sourceID && (
+        <ManualRefresh
+          sourceID={sourceID}
+          paused={snapshot?.state === "paused"}
         />
-        {snapshot.state === "fresh" ? "업데이트" : "마지막 업데이트"} ·{" "}
-        {new Date(snapshot.updatedAt).toLocaleTimeString("ko-KR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </p>
-    )
+      )}
+      {snapshot?.updatedAt && (
+        <p className="updated">
+          <span
+            className={
+              snapshot.state === "fresh" ? "status-dot" : "status-dot stale"
+            }
+          />
+          {snapshot.state === "fresh" ? "업데이트" : "마지막 업데이트"} ·{" "}
+          {new Date(snapshot.updatedAt).toLocaleTimeString("ko-KR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ManualRefresh({
+  sourceID,
+  paused,
+}: {
+  sourceID: string;
+  paused?: boolean;
+}) {
+  const [busy, setBusy] = useState(false),
+    [until, setUntil] = useState(0),
+    [tick, setTick] = useState(Date.now()),
+    [error, setError] = useState("");
+  useEffect(() => {
+    if (!until) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setTick(now);
+      if (now >= until) setUntil(0);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [until]);
+  const seconds = Math.max(0, Math.ceil((until - tick) / 1000));
+  async function refresh() {
+    setBusy(true);
+    setError("");
+    try {
+      const receipt = await request<{ nextAllowedAt: string }>(
+        `/api/v1/sources/${encodeURIComponent(sourceID)}/refresh`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        },
+      );
+      setTick(Date.now());
+      setUntil(Date.parse(receipt.nextAllowedAt));
+      window.dispatchEvent(new Event("glance:refresh"));
+    } catch (err) {
+      const failure = err as ApiError;
+      setError(failure.message);
+      if (failure.status === 429) {
+        setTick(Date.now());
+        setUntil(Date.now() + (failure.retryAfter || 30) * 1000);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <span className="manual-refresh">
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={seconds ? `새로고침 (${seconds}초 대기)` : "새로고침"}
+        disabled={paused || busy || seconds > 0}
+        onClick={refresh}
+      >
+        <RefreshCw size={13} className={busy ? "spin" : ""} />
+        {seconds > 0 && <small>{seconds}초</small>}
+      </button>
+      {error && <small role="status">{error}</small>}
+    </span>
   );
 }

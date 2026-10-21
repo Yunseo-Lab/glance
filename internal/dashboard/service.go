@@ -22,6 +22,9 @@ func (s *DashboardService) Commit(board Board) (Board, error) {
 	if err != nil {
 		return Board{}, err
 	}
+	if s.runtime != nil {
+		s.runtime.CancelUnreferenced()
+	}
 	if err = s.store.pruneSnapshots(saved.Sources); err != nil {
 		log.Print("dashboard cache prune failed")
 	}

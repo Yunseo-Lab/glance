@@ -21,6 +21,7 @@ type WidgetDefinition struct {
 	validate      func(json.RawMessage) error
 }
 type ProviderDefinition struct {
+	host            func(Source) string
 	Type            string         `json:"type"`
 	Title           string         `json:"title"`
 	ConfigVersion   int            `json:"configVersion"`
@@ -53,8 +54,8 @@ var widgetDefinitions = map[string]WidgetDefinition{
 	"weather":   {Type: "weather", Title: "날씨", Description: "Open-Meteo의 현재 날씨", ConfigVersion: 1, SourceType: "weather", Capabilities: []string{"remote"}, ConfigSchema: objectSchema(map[string]any{}), validate: validateEmpty},
 }
 var providerDefinitions = map[string]ProviderDefinition{
-	"rss":     {Type: "rss", Title: "공개 RSS·Atom", ConfigVersion: 1, FreshForSeconds: 600, Capabilities: []string{"public-https"}, ConfigSchema: objectSchema(map[string]any{"url": textSchema(2048)}, "url"), validate: validateRSSSource, fetch: (*Providers).fetchRSS},
-	"weather": {Type: "weather", Title: "Open-Meteo", ConfigVersion: 1, FreshForSeconds: 900, Capabilities: []string{"public-https"}, ConfigSchema: objectSchema(map[string]any{"latitude": map[string]any{"type": "number", "minimum": -90, "maximum": 90}, "longitude": map[string]any{"type": "number", "minimum": -180, "maximum": 180}, "location": textSchema(100)}, "latitude", "longitude", "location"), validate: validateWeatherSource, fetch: (*Providers).fetchWeather},
+	"rss":     {Type: "rss", Title: "공개 RSS·Atom", ConfigVersion: 1, FreshForSeconds: 600, Capabilities: []string{"public-https"}, ConfigSchema: objectSchema(map[string]any{"url": textSchema(2048)}, "url"), validate: validateRSSSource, host: sourceURLHost, fetch: (*Providers).fetchRSS},
+	"weather": {Type: "weather", Title: "Open-Meteo", ConfigVersion: 1, FreshForSeconds: 900, Capabilities: []string{"public-https"}, ConfigSchema: objectSchema(map[string]any{"latitude": map[string]any{"type": "number", "minimum": -90, "maximum": 90}, "longitude": map[string]any{"type": "number", "minimum": -180, "maximum": 180}, "location": textSchema(100)}, "latitude", "longitude", "location"), validate: validateWeatherSource, host: fixedHost("api.open-meteo.com"), fetch: (*Providers).fetchWeather},
 }
 
 func Catalog() CatalogDocument {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -20,6 +19,7 @@ import (
 )
 
 type Providers struct {
+	store      *Store
 	client     *http.Client
 	proxyHosts map[string]bool
 }
@@ -83,13 +83,16 @@ func checkDestination(ctx context.Context, u *url.URL) error {
 	}
 	return nil
 }
-func NewProviders() *Providers {
+func NewProviders(stores ...*Store) *Providers {
 	p := &Providers{proxyHosts: map[string]bool{"github.com": true, "raw.githubusercontent.com": true, "api.open-meteo.com": true}}
 	for _, host := range strings.Split(os.Getenv("GLANCE_DASHBOARD_FEED_HOSTS"), ",") {
 		host = strings.ToLower(strings.TrimSpace(host))
 		if host != "" && !strings.ContainsAny(host, "/:@*") && host != "localhost" && !strings.HasSuffix(host, ".local") && !strings.HasSuffix(host, ".internal") {
 			p.proxyHosts[host] = true
 		}
+	}
+	if len(stores) > 0 {
+		p.store = stores[0]
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	// Preserve the environment's HTTP proxy and CA trust. Direct connections
@@ -146,13 +149,46 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "Glance-Dashboard/1.0")
+	metadata, _ := ctx.Value(conditionalKey{}).(*conditionalRequest)
+	if metadata != nil {
+		if metadata.previous.ETag != "" {
+			req.Header.Set("If-None-Match", metadata.previous.ETag)
+		}
+		if metadata.previous.LastModified != "" {
+			req.Header.Set("If-Modified-Since", metadata.previous.LastModified)
+		}
+	}
+
 	res, err := p.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
+	if metadata != nil {
+		metadata.received = HTTPValidators{ETag: res.Header.Get("ETag"), LastModified: res.Header.Get("Last-Modified")}
+		if len(metadata.received.ETag) > 1024 {
+			metadata.received.ETag = ""
+		}
+		if len(metadata.received.LastModified) > 128 {
+			metadata.received.LastModified = ""
+		}
+		if res.StatusCode == http.StatusNotModified {
+			if metadata.previous.ETag == "" && metadata.previous.LastModified == "" {
+				return nil, &ProviderError{Code: "invalid_response"}
+			}
+			if metadata.received.ETag == "" {
+				metadata.received.ETag = metadata.previous.ETag
+			}
+			if metadata.received.LastModified == "" {
+				metadata.received.LastModified = metadata.previous.LastModified
+			}
+			return nil, errNotModified
+		}
+	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("provider returned HTTP %d", res.StatusCode)
+		failure := statusError(res.StatusCode)
+		failure.RetryAfter = parseRetryAfter(res.Header.Get("Retry-After"), time.Now())
+		return nil, failure
 	}
 	const maxBody = MaxProviderBody
 	data, err := io.ReadAll(io.LimitReader(res.Body, maxBody+1))

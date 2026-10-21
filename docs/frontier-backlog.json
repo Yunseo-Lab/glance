@@ -325,11 +325,14 @@
       "depends_on": [
         "F016"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/provider_errors_test.go"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-21T22:58:18+00:00",
-      "progress_note": "snapshot 오류 분류·최종 성공·다음 재시도 정보를 일관된 결과 envelope로 확장한다.",
+      "updated_at": "2026-10-21T23:00:13+00:00",
+      "progress_note": "안전한 오류 분류와 마지막 시도·성공·재시도 metadata를 추가하고 민감한 원인 비노출 검증을 통과했다.",
       "started_at": "2026-10-21T22:58:18+00:00"
     },
     {
@@ -341,9 +344,15 @@
       "depends_on": [
         "F017"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/scheduler_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:02:03+00:00",
+      "progress_note": "브라우저 없는 갱신·due 영속화·중복 lease 거부·crash 만료 회수·옛 worker의 lease 덮어쓰기 방지 검사 통과.",
+      "started_at": "2026-10-21T23:00:13+00:00"
     },
     {
       "id": "F019",
@@ -354,9 +363,15 @@
       "depends_on": [
         "F018"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/conditional_http_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:02:03+00:00",
+      "progress_note": "조건부 요청 headers·304 freshness 갱신·기존 데이터 유지·본문 없는 304 거부·validators 저장 검사 통과.",
+      "started_at": "2026-10-21T23:02:03+00:00"
     },
     {
       "id": "F020",
@@ -367,9 +382,15 @@
       "depends_on": [
         "F019"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race -count=10 ./internal/dashboard: PASS",
+        "internal/dashboard/retry_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:02:53+00:00",
+      "progress_note": "長い Retry-After·HTTP date·상한 있는 jitter/backoff·호스트 2개/전역 4개 동시성 검사를 race 10회 반복 통과.",
+      "started_at": "2026-10-21T23:02:03+00:00"
     },
     {
       "id": "F021",
@@ -380,9 +401,15 @@
       "depends_on": [
         "F020"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "internal/dashboard/refresh_fence_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:04:45+00:00",
+      "progress_note": "삭제 즉시 취소, source generation·lease 만료·reference 검사를 통과한 결과만 원자적으로 저장. 미등록 source의 운영 fetch 거부 검사 통과.",
+      "started_at": "2026-10-21T23:02:53+00:00"
     },
     {
       "id": "F022",
@@ -393,9 +420,16 @@
       "depends_on": [
         "F021"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "Playwright runtime.spec.ts: 2 passed",
+        "internal/dashboard/manual_refresh_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:07:07+00:00",
+      "progress_note": "수동 갱신의 소스/소유자 quota·동시 탭 원자성·upstream 대기 보존·화면의 비활성/대기 설명까지 검증.",
+      "started_at": "2026-10-21T23:04:45+00:00"
     },
     {
       "id": "F023",
@@ -406,9 +440,16 @@
       "depends_on": [
         "F022"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race ./internal/dashboard: PASS",
+        "production build: PASS",
+        "internal/dashboard/diagnostics_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:08:27+00:00",
+      "progress_note": "소스별 상태/참조 보드/작업 metadata·본문 없는 diagnostics·pause/resume·동일 query alias의 정상 동작 검사 통과.",
+      "started_at": "2026-10-21T23:07:07+00:00"
     },
     {
       "id": "F024",
@@ -419,9 +460,18 @@
       "depends_on": [
         "F023"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "go test -race -count=10 ./internal/dashboard: PASS",
+        "go vet ./...: PASS",
+        "contracts:check and production build: PASS",
+        "Playwright: 18 passed",
+        "internal/dashboard/runtime_clock_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:09:36+00:00",
+      "progress_note": "가짜 시계의 backoff/복구·oversize·panic·304·lease/crash·삭제취소·호스트/global 제한을 race 10회 반복. 전체 브라우저 18개 통과.",
+      "started_at": "2026-10-21T23:08:27+00:00"
     },
     {
       "id": "F025",
@@ -433,9 +483,12 @@
         "F016",
         "F024"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:09:36+00:00",
+      "progress_note": "credential이 board·source JSON·export·browser·로그에 노출되지 않는 connection 계약을 구현한다.",
+      "started_at": "2026-10-21T23:09:36+00:00"
     },
     {
       "id": "F026",

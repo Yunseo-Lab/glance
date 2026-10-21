@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
@@ -66,7 +67,7 @@ func TestRuntimeBoundsWorkAndCancelsOnClose(t *testing.T) {
 	})
 	defer runtime.Close()
 	for i := range 20 {
-		source := Source{ID: "bounded", Type: "weather", Config: raw(WeatherSource{Latitude: float64(i), Longitude: 0, Location: "Test"})}
+		source := Source{ID: "bounded", Type: "rss", Config: raw(RSSSource{URL: fmt.Sprintf("https://host%d.example.com/feed/%d", i%2, i)})}
 		if _, err := runtime.Read(source); err != nil {
 			t.Fatal(err)
 		}

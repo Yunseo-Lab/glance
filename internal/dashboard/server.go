@@ -242,8 +242,9 @@ func Run(args []string) int {
 		return 1
 	}
 	defer store.Close()
-	runtime := NewRuntime(store, NewProviders().Fetch)
+	runtime := NewRuntime(store, NewProviders(store).FetchCached)
 	defer runtime.Close()
+	runtime.StartScheduler()
 	server := &http.Server{Addr: *listen, Handler: NewHandler(store, runtime, token), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

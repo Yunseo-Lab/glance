@@ -50,6 +50,7 @@ export function useSnapshots(revision?: number) {
     };
     retry.current = () => void poll();
     window.addEventListener("online", wake);
+    window.addEventListener("glance:refresh", wake);
     document.addEventListener("visibilitychange", wake);
     void poll();
     return () => {
@@ -58,6 +59,7 @@ export function useSnapshots(revision?: number) {
       clearTimeout(timer);
       retry.current = () => {};
       window.removeEventListener("online", wake);
+      window.removeEventListener("glance:refresh", wake);
       document.removeEventListener("visibilitychange", wake);
     };
   }, [revision]);

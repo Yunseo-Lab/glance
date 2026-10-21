@@ -14,6 +14,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly retryAfter?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -46,6 +47,7 @@ export async function request<T>(
         ? body.error
         : `요청에 실패했습니다 (${response.status})`,
       response.status,
+      Number(response.headers.get("Retry-After")) || undefined,
     );
   return body as T;
 }

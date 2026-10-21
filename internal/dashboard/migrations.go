@@ -26,6 +26,12 @@ CREATE TABLE entry_state(owner_id TEXT NOT NULL,entry_id TEXT NOT NULL REFERENCE
 	{"bounded source and reading query indexes", `CREATE INDEX sources_by_owner ON sources(owner_id,id);
 CREATE INDEX entries_by_source ON entries(source_id);
 CREATE INDEX saved_entries_by_owner ON entry_state(owner_id,is_saved,entry_id);`},
+	{"persistent refresh leases", `CREATE TABLE refresh_jobs(cache_key TEXT PRIMARY KEY,source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,next_run INTEGER NOT NULL,lease_until INTEGER NOT NULL DEFAULT 0,lease_token TEXT NOT NULL DEFAULT '');
+CREATE INDEX due_refresh_jobs ON refresh_jobs(next_run,lease_until);`},
+	{"HTTP conditional request validators", `CREATE TABLE http_validators(cache_key TEXT PRIMARY KEY REFERENCES snapshots(cache_key) ON DELETE CASCADE,etag TEXT NOT NULL,last_modified TEXT NOT NULL,updated_at TEXT NOT NULL);`},
+	{"refresh source generation fence", `ALTER TABLE refresh_jobs ADD COLUMN source_generation INTEGER NOT NULL DEFAULT 1;`},
+	{"manual refresh budgets", `ALTER TABLE refresh_jobs ADD COLUMN manual_next_allowed INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE manual_refresh_log(id INTEGER PRIMARY KEY,requested_at INTEGER NOT NULL);`},
 }
 
 func schemaVersion() int { return len(migrations) }

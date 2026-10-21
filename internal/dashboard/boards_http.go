@@ -2,11 +2,22 @@ package dashboard
 
 import (
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func serviceError(w http.ResponseWriter, err error) {
+	var cooldown *CooldownError
 	switch {
+	case errors.As(err, &cooldown):
+		seconds := int(math.Ceil(time.Until(cooldown.Until).Seconds()))
+		if seconds < 1 {
+			seconds = 1
+		}
+		w.Header().Set("Retry-After", strconv.Itoa(seconds))
+		apiError(w, 429, cooldown.Error())
 	case errors.Is(err, ErrNotFound):
 		apiError(w, 404, err.Error())
 	case errors.Is(err, ErrConflict), errors.Is(err, ErrSourceConflict):
@@ -20,6 +31,72 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("GET /api/v1/sources", func(w http.ResponseWriter, r *http.Request) {
+		statuses, err := service.store.SourceStatuses(time.Now())
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, statuses)
+	})
+	mux.HandleFunc("GET /api/v1/diagnostics", func(w http.ResponseWriter, r *http.Request) {
+		statuses, err := service.store.SourceStatuses(time.Now())
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		running, failed, paused := 0, 0, 0
+		for _, status := range statuses {
+			if status.Running {
+				running++
+			}
+			if status.Snapshot.ErrorCode != "" {
+				failed++
+			}
+			if status.Paused {
+				paused++
+			}
+		}
+		jsonResponse(w, 200, map[string]any{"activeSources": len(statuses), "runningSources": running, "failedSources": failed, "pausedSources": paused, "limits": Limits()})
+	})
+	mux.HandleFunc("POST /api/v1/sources/{id}/pause", func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Paused *bool `json:"paused"`
+		}
+		if !readMutation(w, r, &input) {
+			return
+		}
+		if input.Paused == nil {
+			apiError(w, 400, "일시정지 여부를 입력하세요")
+			return
+		}
+		id := r.PathValue("id")
+		if err := service.store.PauseSource(id, *input.Paused); err != nil {
+			serviceError(w, err)
+			return
+		}
+		if service.runtime != nil {
+			service.runtime.CancelSource(id)
+		}
+		jsonResponse(w, 200, map[string]bool{"paused": *input.Paused})
+	})
+
+	mux.HandleFunc("POST /api/v1/sources/{id}/refresh", func(w http.ResponseWriter, r *http.Request) {
+		var input struct{}
+		if !readMutation(w, r, &input) {
+			return
+		}
+		source, receipt, err := service.store.RequestRefresh(r.PathValue("id"), time.Now())
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		if service.runtime != nil {
+			_, _ = service.runtime.Read(source)
+		}
+		jsonResponse(w, 202, receipt)
+	})
+
 	mux.HandleFunc("GET /api/v1/boards", func(w http.ResponseWriter, r *http.Request) {
 		boards, err := service.store.Boards()
 		if err != nil {
@@ -94,6 +171,9 @@ func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
 		if err := service.store.DeleteBoard(r.PathValue("id"), input.Revision); err != nil {
 			serviceError(w, err)
 			return
+		}
+		if service.runtime != nil {
+			service.runtime.CancelUnreferenced()
 		}
 		_ = service.store.pruneSnapshots(nil)
 		jsonResponse(w, 200, map[string]bool{"deleted": true})

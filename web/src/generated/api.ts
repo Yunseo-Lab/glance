@@ -1,5 +1,73 @@
 // Generated from docs/dashboard-api.openapi.yaml; do not edit.
 export interface paths {
+    "/api/v1/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSourceStatuses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sources/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["requestSourceRefresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sources/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pauseSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/limits": {
         parameters: {
             query?: never;
@@ -254,8 +322,12 @@ export interface components {
             location?: string;
         };
         Snapshot: {
+            /** @description Safe provider error class; contains no remote body, URL or credential */
+            errorCode?: string;
+            /** Format: date-time */
+            attemptedAt?: string;
             /** @enum {string} */
-            state: "loading" | "fresh" | "stale" | "error";
+            state: "loading" | "fresh" | "stale" | "error" | "paused";
             /** Format: date-time */
             updatedAt?: string;
             /** Format: date-time */
@@ -301,6 +373,95 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getSourceStatuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner sources with board references, safe snapshot metadata, pause and job states; excludes snapshot body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Source/job counts and capacity limits without private payloads or credentials */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestSourceRefresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted within owner and source quota; includes nextAllowedAt */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cooldown; Retry-After header explains when to retry. Does not bypass provider backoff. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pauseSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    paused: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Source pause/resume applied, old refresh generation invalidated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getCapacityLimits: {
         parameters: {
             query?: never;

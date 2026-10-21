@@ -13,6 +13,54 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/sources:
+    get:
+      operationId: getSourceStatuses
+      responses:
+        '200':
+          description: Owner sources with board references, safe snapshot metadata, pause and job states; excludes snapshot body
+  /api/v1/diagnostics:
+    get:
+      operationId: getDiagnostics
+      responses:
+        '200':
+          description: Source/job counts and capacity limits without private payloads or credentials
+  /api/v1/sources/{id}/refresh:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: requestSourceRefresh
+      responses:
+        '202':
+          description: Accepted within owner and source quota; includes nextAllowedAt
+        '429':
+          description: Cooldown; Retry-After header explains when to retry. Does not bypass provider backoff.
+  /api/v1/sources/{id}/pause:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: pauseSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paused]
+              properties:
+                paused:
+                  type: boolean
+      responses:
+        '200':
+          description: Source pause/resume applied, old refresh generation invalidated
   /api/v1/limits:
     get:
       operationId: getCapacityLimits
@@ -378,9 +426,15 @@ components:
       type: object
       required: [state]
       properties:
+        errorCode:
+          type: string
+          description: Safe provider error class; contains no remote body, URL or credential
+        attemptedAt:
+          type: string
+          format: date-time
         state:
           type: string
-          enum: [loading, fresh, stale, error]
+          enum: [loading, fresh, stale, error, paused]
         updatedAt:
           type: string
           format: date-time
