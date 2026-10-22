@@ -1,5 +1,55 @@
 // Generated from docs/dashboard-api.openapi.yaml; do not edit.
 export interface paths {
+    "/api/v1/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entries/{id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateEntryState"];
+        trace?: never;
+    };
+    "/api/v1/imports/opml/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["previewOPML"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/locations": {
         parameters: {
             query?: never;
@@ -462,7 +512,7 @@ export interface components {
             configVersion?: number;
             id: string;
             /** @enum {string} */
-            type: "clock" | "calendar" | "note" | "bookmarks" | "rss" | "weather" | "github";
+            type: "clock" | "calendar" | "note" | "bookmarks" | "rss" | "weather" | "github" | "agenda" | "json";
             title: string;
             /** @enum {string} */
             size: "small" | "wide";
@@ -477,7 +527,7 @@ export interface components {
             configVersion?: number;
             id: string;
             /** @enum {string} */
-            type: "rss" | "weather" | "github";
+            type: "rss" | "weather" | "github" | "ical" | "json";
             config: components["schemas"]["SourceConfig"];
         };
         Link: {
@@ -486,12 +536,14 @@ export interface components {
         };
         /** @description Per-type fields are strictly validated using the server catalog. */
         WidgetConfig: {
+            unit?: string;
             timezone?: string;
             body?: string;
             links?: components["schemas"]["Link"][];
             limit?: number;
         };
         SourceConfig: {
+            pointer?: string;
             repository?: string;
             /** @enum {string} */
             view?: "repository" | "releases" | "issues" | "pulls";
@@ -519,7 +571,7 @@ export interface components {
             /** Format: date-time */
             retryAt?: string;
             error?: string;
-            data?: components["schemas"]["FeedData"] | components["schemas"]["WeatherData"];
+            data?: components["schemas"]["FeedData"] | components["schemas"]["WeatherData"] | components["schemas"]["CalendarData"] | components["schemas"]["JSONValueData"];
         };
         FeedData: {
             title: string;
@@ -542,6 +594,69 @@ export interface components {
             latitude: number;
             longitude: number;
             timezone: string;
+        };
+        Entry: {
+            id: string;
+            title: string;
+            url: string;
+            excerpt: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: date-time */
+            collectedAt: string;
+            sourceTitle: string;
+            sourceIds: string[];
+            isRead: boolean;
+            isSaved: boolean;
+            tags: string[];
+        };
+        EntryPage: {
+            items: components["schemas"]["Entry"][];
+            nextCursor?: string;
+            total: number;
+            capacityReached: boolean;
+        };
+        EntryState: {
+            isRead: boolean;
+            isSaved: boolean;
+            tags: string[];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        EntryStateInput: {
+            read?: boolean;
+            saved?: boolean;
+        };
+        FeedImportItem: {
+            title: string;
+            url: string;
+            folder?: string;
+        };
+        FeedImportPreview: {
+            duplicateCount: number;
+            feeds: components["schemas"]["FeedImportItem"][];
+        };
+        JSONValueData: {
+            value: string;
+            /** @enum {string} */
+            kind: "string" | "number" | "boolean" | "null";
+        };
+        CalendarData: {
+            title: string;
+            warnings: string[];
+            events: components["schemas"]["CalendarEvent"][];
+        };
+        CalendarEvent: {
+            id: string;
+            title: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            allDay: boolean;
+            timezone: string;
+            location?: string;
+            url?: string;
         };
         WeatherData: {
             /** @enum {string} */
@@ -622,6 +737,112 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listEntries: {
+        parameters: {
+            query?: {
+                status?: "all" | "unread" | "read" | "saved";
+                board?: string;
+                source?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-scoped keyset page of durable normalized entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryPage"];
+                };
+            };
+            /** @description Invalid filter, cursor or limit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateEntryState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryStateInput"];
+            };
+        };
+        responses: {
+            /** @description Explicit field updates preserve independent read and saved state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryState"];
+                };
+            };
+            /** @description Empty or invalid state update */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Owner entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    previewOPML: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Validated, deduplicated feeds; performs no writes or upstream requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedImportPreview"];
+                };
+            };
+            /** @description Invalid OPML, URL or capacity */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     searchLocations: {
         parameters: {
             query: {

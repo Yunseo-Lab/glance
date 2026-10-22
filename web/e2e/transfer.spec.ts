@@ -43,19 +43,17 @@ test("invalid source references and future widget config do not change the previ
     await page
       .getByRole("button", { name: "설정 가져오기", exact: true })
       .click();
-    await page
-      .locator("input[type=file]")
-      .setInputFiles({
-        name: "invalid.json",
-        mimeType: "application/json",
-        buffer: Buffer.from(
-          JSON.stringify({
-            format: "glance-dashboard",
-            version: 1,
-            board: { ...baseline, widgets },
-          }),
-        ),
-      });
+    await page.locator("input[type=file]").setInputFiles({
+      name: "invalid.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          format: "glance-dashboard",
+          version: 1,
+          board: { ...baseline, widgets },
+        }),
+      ),
+    });
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "편집", exact: true }),

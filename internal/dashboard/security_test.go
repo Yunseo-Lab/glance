@@ -101,3 +101,17 @@ func FuzzEncryptedConnectionEnvelope(f *testing.F) {
 		}
 	})
 }
+
+func TestPrivateConnectionRedirectCannotLeakAddressThroughReferer(t *testing.T) {
+	provider := NewProviders()
+	from, _ := http.NewRequestWithContext(context.WithValue(context.Background(), sensitiveRequestKey{}, true), "GET", "https://example.com/private/token.ics", nil)
+	next, _ := http.NewRequest("GET", "https://other.example.com/public", nil)
+	next.Header.Set("Referer", from.URL.String())
+	next.Header.Set("Authorization", "Bearer fixture")
+	if provider.client.CheckRedirect(next, []*http.Request{from}) == nil {
+		t.Fatal("private cross-origin redirect accepted")
+	}
+	if next.Header.Get("Referer") != "" || next.Header.Get("Authorization") != "" {
+		t.Fatal("private redirect metadata retained")
+	}
+}

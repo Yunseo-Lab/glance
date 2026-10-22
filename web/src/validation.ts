@@ -53,6 +53,48 @@ export function validateWidgetDetail(
           );
       }
       break;
+    case "json":
+      if (
+        !source?.connectionId &&
+        (!source?.config.url || !validPublicURL(source.config.url))
+      )
+        return fail("url", "공개 HTTPS JSON 주소 또는 개인 연결을 선택하세요.");
+      if (
+        typeof source?.config.pointer !== "string" ||
+        bytes(source.config.pointer) > 512 ||
+        (source.config.pointer !== "" &&
+          (!source.config.pointer.startsWith("/") ||
+            source.config.pointer.split("/").length > 17 ||
+            /~(?![01])/u.test(source.config.pointer)))
+      )
+        return fail(
+          "pointer",
+          "올바른 JSON Pointer를 입력하세요. 예: /current/value",
+        );
+      if (bytes(widget.config.unit || "") > 40)
+        return fail("unit", "단위를 조금 더 짧게 입력하세요.");
+      break;
+    case "agenda":
+      if (
+        !source?.connectionId &&
+        (!source?.config.url || !validPublicURL(source.config.url))
+      )
+        return fail("url", "공개 HTTPS 일정 주소 또는 개인 연결을 선택하세요.");
+      if (
+        !Number.isInteger(widget.config.limit) ||
+        widget.config.limit! < 1 ||
+        widget.config.limit! > 20
+      )
+        return fail("limit", "표시할 일정 수는 1~20입니다.");
+      if (source?.config.timezone)
+        try {
+          new Intl.DateTimeFormat("ko-KR", {
+            timeZone: source.config.timezone,
+          }).format();
+        } catch {
+          return fail("timezone", "올바른 시간대를 입력하세요.");
+        }
+      break;
     case "github":
       if (
         !source?.config.repository ||

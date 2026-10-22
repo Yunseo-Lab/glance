@@ -33,6 +33,52 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("GET /api/v1/entries", func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		limit := 0
+		if query.Get("limit") != "" {
+			var err error
+			limit, err = strconv.Atoi(query.Get("limit"))
+			if err != nil {
+				serviceError(w, ErrInvalidInput)
+				return
+			}
+		}
+		page, err := service.store.Entries(EntryFilter{Status: query.Get("status"), BoardID: query.Get("board"), SourceID: query.Get("source"), Cursor: query.Get("cursor"), Limit: limit, Query: query.Get("q"), Tag: query.Get("tag")})
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, page)
+	})
+	mux.HandleFunc("PATCH /api/v1/entries/{id}/state", func(w http.ResponseWriter, r *http.Request) {
+		var input EntryStateInput
+		if !readMutation(w, r, &input) {
+			return
+		}
+		state, err := service.store.SetEntryState(r.PathValue("id"), input)
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, state)
+	})
+
+	mux.HandleFunc("POST /api/v1/imports/opml/preview", func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Document string `json:"document"`
+		}
+		if !readMutation(w, r, &input) {
+			return
+		}
+		preview, err := parseOPML(input.Document)
+		if err != nil {
+			apiError(w, 400, "올바른 OPML과 공개 HTTPS 피드를 확인하세요. 파일은 512KiB, 피드는 128개 이하여야 합니다.")
+			return
+		}
+		jsonResponse(w, 200, preview)
+	})
+
 	mux.HandleFunc("GET /api/v1/locations", func(w http.ResponseWriter, r *http.Request) {
 		result, err := service.SearchLocations(r.Context(), r.URL.Query().Get("q"))
 		if err != nil {
@@ -99,7 +145,12 @@ func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
 				paused++
 			}
 		}
-		jsonResponse(w, 200, map[string]any{"activeSources": len(statuses), "runningSources": running, "failedSources": failed, "pausedSources": paused, "limits": Limits()})
+		var entries int
+		if err = service.store.db.QueryRow("SELECT count(*) FROM entries WHERE owner_id='local'").Scan(&entries); err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, map[string]any{"entries": entries, "entryCapacityReached": entries >= MaxEntries, "activeSources": len(statuses), "runningSources": running, "failedSources": failed, "pausedSources": paused, "limits": Limits()})
 	})
 	mux.HandleFunc("POST /api/v1/sources/{id}/pause", func(w http.ResponseWriter, r *http.Request) {
 		var input struct {

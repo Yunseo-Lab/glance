@@ -31,7 +31,7 @@ func TestOpenAPIModelsAndCatalogDoNotDrift(t *testing.T) {
 	if err = yaml.Unmarshal(data, &document); err != nil {
 		t.Fatal(err)
 	}
-	for name, model := range map[string]any{"LocationResult": LocationResult{}, "Board": Board{}, "Widget": Widget{}, "Source": Source{}, "FeedData": FeedData{}, "WeatherData": WeatherData{}, "Snapshot": Snapshot{}, "Link": Link{}, "Error": ErrorResponse{}, "Connection": Connection{}, "SourceStatus": SourceStatus{}, "ConnectionTestReport": ConnectionTestReport{}} {
+	for name, model := range map[string]any{"Entry": Entry{}, "EntryPage": EntryPage{}, "EntryState": EntryState{}, "EntryStateInput": EntryStateInput{}, "FeedImportPreview": FeedImportPreview{}, "FeedImportItem": FeedImportItem{}, "JSONValueData": JSONValueData{}, "CalendarData": CalendarData{}, "CalendarEvent": CalendarEvent{}, "LocationResult": LocationResult{}, "Board": Board{}, "Widget": Widget{}, "Source": Source{}, "FeedData": FeedData{}, "WeatherData": WeatherData{}, "Snapshot": Snapshot{}, "Link": Link{}, "Error": ErrorResponse{}, "Connection": Connection{}, "SourceStatus": SourceStatus{}, "ConnectionTestReport": ConnectionTestReport{}} {
 		schema, ok := document.Components.Schemas[name]
 		if !ok {
 			t.Fatal("missing API model", name)

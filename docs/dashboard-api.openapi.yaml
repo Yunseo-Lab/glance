@@ -13,6 +13,92 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/entries:
+    get:
+      operationId: listEntries
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, unread, read, saved]
+        - name: board
+          in: query
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Owner-scoped keyset page of durable normalized entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryPage'
+        '400':
+          description: Invalid filter, cursor or limit
+  /api/v1/entries/{id}/state:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      operationId: updateEntryState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryStateInput'
+      responses:
+        '200':
+          description: Explicit field updates preserve independent read and saved state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryState'
+        '400':
+          description: Empty or invalid state update
+        '404':
+          description: Owner entry not found
+  /api/v1/imports/opml/preview:
+    post:
+      operationId: previewOPML
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document]
+              additionalProperties: false
+              properties:
+                document:
+                  type: string
+                  maxLength: 524288
+      responses:
+        '200':
+          description: Validated, deduplicated feeds; performs no writes or upstream requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedImportPreview'
+        '400':
+          description: Invalid OPML, URL or capacity
   /api/v1/locations:
     get:
       operationId: searchLocations
@@ -548,7 +634,7 @@ components:
           type: string
         type:
           type: string
-          enum: [clock, calendar, note, bookmarks, rss, weather, github]
+          enum: [clock, calendar, note, bookmarks, rss, weather, github, agenda, json]
         title:
           type: string
         size:
@@ -576,7 +662,7 @@ components:
           type: string
         type:
           type: string
-          enum: [rss, weather, github]
+          enum: [rss, weather, github, ical, json]
         config:
           $ref: '#/components/schemas/SourceConfig'
     Link:
@@ -592,6 +678,8 @@ components:
       additionalProperties: false
       description: Per-type fields are strictly validated using the server catalog.
       properties:
+        unit:
+          type: string
         timezone:
           type: string
         body:
@@ -606,6 +694,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        pointer:
+          type: string
         repository:
           type: string
         view:
@@ -655,6 +745,8 @@ components:
           oneOf:
             - $ref: '#/components/schemas/FeedData'
             - $ref: '#/components/schemas/WeatherData'
+            - $ref: '#/components/schemas/CalendarData'
+            - $ref: '#/components/schemas/JSONValueData'
     FeedData:
       type: object
       required: [title, items]
@@ -701,6 +793,145 @@ components:
         timezone:
           type: string
 
+    Entry:
+      type: object
+      required: [id, title, url, excerpt, collectedAt, sourceTitle, sourceIds, isRead, isSaved, tags]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        excerpt:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        collectedAt:
+          type: string
+          format: date-time
+        sourceTitle:
+          type: string
+        sourceIds:
+          type: array
+          items:
+            type: string
+        isRead:
+          type: boolean
+        isSaved:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+    EntryPage:
+      type: object
+      required: [items, total, capacityReached]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/Entry'
+        nextCursor:
+          type: string
+        total:
+          type: integer
+        capacityReached:
+          type: boolean
+    EntryState:
+      type: object
+      required: [isRead, isSaved, tags, updatedAt]
+      properties:
+        isRead:
+          type: boolean
+        isSaved:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+    EntryStateInput:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        read:
+          type: boolean
+        saved:
+          type: boolean
+    FeedImportItem:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        folder:
+          type: string
+    FeedImportPreview:
+      type: object
+      required: [feeds, duplicateCount]
+      properties:
+        duplicateCount:
+          type: integer
+        feeds:
+          type: array
+          maxItems: 128
+          items:
+            $ref: '#/components/schemas/FeedImportItem'
+    JSONValueData:
+      type: object
+      required: [value, kind]
+      properties:
+        value:
+          type: string
+          maxLength: 4096
+        kind:
+          type: string
+          enum: [string, number, boolean, 'null']
+    CalendarData:
+      type: object
+      required: [title, events, warnings]
+      properties:
+        title:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        events:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CalendarEvent'
+    CalendarEvent:
+      type: object
+      required: [id, title, start, end, allDay, timezone]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        allDay:
+          type: boolean
+        timezone:
+          type: string
+        location:
+          type: string
+        url:
+          type: string
     WeatherData:
       type: object
       required: [location, temperature, feelsLike, humidity, code]

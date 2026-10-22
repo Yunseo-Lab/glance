@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-22T00:17:45+00:00
+최근 기록: 2026-10-22T00:39:00+00:00
 
-조사·설계 8/8 · 신규 구현 검증 44/72 · 진행 중 1 · 예정 25 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 50/72 · 진행 중 1 · 예정 19 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -96,3 +96,15 @@
 | 2026-10-22T00:14:14+00:00 | F052 | in_progress | private GitHub를 connection ID에 연결하고 owner/connection/generation을 포함한 cache key, 회전/철회 시 validator·본문 제거 및 권한 오류를 검증한다. |
 | 2026-10-22T00:17:45+00:00 | F052 | verified | connection ID와 credential generation을 포함한 private cache identity를 도입했다. 서버만 토큰을 GitHub 고정 GET에 붙이며 연결 FK/종류를 검증한다. 회전/철회 시 private 본문·validator·job을 제거하고 다른 연결 캐시는 보존한다. 철회된 기존 위젯도 다른 편집을 막지 않는다. |
 | 2026-10-22T00:17:45+00:00 | F053 | in_progress | 공개/암호화 개인 iCalendar를 읽기 전용으로 수집하고 시간대·DST·종일·반복·예외/취소와 계산 예산을 검증한다. |
+| 2026-10-22T00:24:10+00:00 | F053 | verified | 공개/암호화 개인 iCalendar를 읽기 전용으로 표시한다. IANA TZ/DST·종일 끝 날짜·DURATION·반복·EXDATE·이동/취소를 검증했고 입력/확장 예산과 미지원 경고를 문서화했다. private URL의 cross-origin redirect와 Referer 유출도 차단했다. 실제 개인 계정 인수는 별도다. |
+| 2026-10-22T00:24:10+00:00 | F054 | in_progress | JSON Pointer로 선택한 단일 값만 표시하는 read-only 공개/암호화 JSON 소스를 추가한다. 임의 스크립트/템플릿/헤더 실행은 거부한다. |
+| 2026-10-22T00:26:23+00:00 | F054 | verified | RFC6901 Pointer를 16단계/512바이트로 제한해 단일 scalar만 표시한다. 객체/목록/누락/잘못된 escape/큰 값/임의 script·header 설정은 거부한다. 개인 URL·Bearer는 서버만 해결하고 화면의 HTML 문자열은 텍스트로만 렌더한다. |
+| 2026-10-22T00:26:23+00:00 | F055 | in_progress | OPML 파일에서 공개 HTTPS RSS/RSSHub/Bridge 피드를 중복 없이 미리 보고 선택해 초안에 적용한다. 파싱 단계에는 저장/수집하지 않고 DTD·사설 주소·입력 한도를 검증한다. |
+| 2026-10-22T00:29:35+00:00 | F055 | verified | OPML의 폴더/제목/공개 HTTPS feed를 미리 보고 선택한 항목만 하나의 초안 명령으로 추가한다. 중복·DTD/사설 URL·512KiB/128 feed/깊이 한도와 preview 무저장·저장 전 수집 없음, 32개 초안 한도 원자성을 검증했다. |
+| 2026-10-22T00:29:35+00:00 | F056 | in_progress | 다섯 provider의 성공/잘못된 본문/권한/404/429/5xx/초과 크기/timeout 공통 contract를 mock HTTP로 검사하고 실제 외부 인수와 fixture 증거를 ledger로 구분한다. |
+| 2026-10-22T00:32:31+00:00 | F056 | verified | 다섯 provider의 공통 mock HTTP contract(성공·malformed·401/403/404/429/503·2MiB 초과·timeout)를 검증했다. 전체 Go race/vet, 생성 계약 검사, 브라우저 50개와 npm audit 0건 통과. 실제 개인 계정/운영 호스트 인수는 ledger에서 미검증으로 분리했다. |
+| 2026-10-22T00:32:31+00:00 | F057 | in_progress | 수집 snapshot의 동일 세대·트랜잭션 안에서 정규화 entry와 복수 source provenance를 저장한다. 읽음/저장 상태를 보존하고 1만 개에서 새 수집을 제한한다. |
+| 2026-10-22T00:37:09+00:00 | F057 | verified | snapshot/validator와 동일한 세대 fence·트랜잭션으로 RSS/GitHub entry/provenance를 저장한다. URL/GUID 재수집·복수 피드·기존 읽음/저장/태그를 보존하고 1만 개에서는 새 항목만 보류한다. obsolete response와 수집 DB 오류의 전체 rollback, private 철회 시 저장한 항목만 유지도 검증했다. |
+| 2026-10-22T00:37:10+00:00 | F058 | in_progress | 모아 읽기를 영속 entry 페이지 API에 연결하고 읽음/저장 토글의 즉시 반영·실패 rollback과 owner 격리, 독립 필드 업데이트를 검증한다. |
+| 2026-10-22T00:38:59+00:00 | F058 | verified | 모아 읽기를 owner-scoped 영속 entry/keyset API와 연결했다. 읽음/저장 필드는 독립적으로 갱신하고 즉시 표시 후 실패 시 해당 항목만 복원한다. DB/HTTP 상태 보존·owner 격리·페이지 중복 없음 및 브라우저 reload/실패 rollback을 검증했다. |
+| 2026-10-22T00:39:00+00:00 | F059 | in_progress | 태그 정규화와 source/board/status/tag 필터, 최대 100개 원자적 일괄 상태 변경 및 선택 UI를 구현한다. |

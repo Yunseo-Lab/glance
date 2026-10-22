@@ -2,6 +2,31 @@
   "version": 1,
   "widgets": [
     {
+      "type": "agenda",
+      "title": "다가오는 일정",
+      "description": "읽기 전용 iCalendar의 향후 일정",
+      "configVersion": 1,
+      "sourceType": "ical",
+      "capabilities": [
+        "remote",
+        "time"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "type": "bookmarks",
       "title": "즐겨찾기",
       "description": "자주 방문하는 HTTPS 링크",
@@ -107,6 +132,27 @@
       }
     },
     {
+      "type": "json",
+      "title": "JSON 값",
+      "description": "JSON Pointer로 선택한 하나의 값",
+      "configVersion": 1,
+      "sourceType": "json",
+      "capabilities": [
+        "remote"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "unit": {
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      }
+    },
+    {
       "type": "note",
       "title": "메모",
       "description": "오늘 기억할 내용을 내 서버에 보관",
@@ -200,6 +246,58 @@
         "required": [
           "repository",
           "view"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "type": "ical",
+      "title": "iCalendar",
+      "configVersion": 1,
+      "freshForSeconds": 900,
+      "capabilities": [
+        "public-https",
+        "encrypted-connection"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "timezone": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 2048,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      }
+    },
+    {
+      "type": "json",
+      "title": "JSON API",
+      "configVersion": 1,
+      "freshForSeconds": 300,
+      "capabilities": [
+        "public-https",
+        "encrypted-connection"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "pointer": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 2048,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer"
         ],
         "type": "object"
       }

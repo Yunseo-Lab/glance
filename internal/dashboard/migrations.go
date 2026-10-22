@@ -37,6 +37,15 @@ ALTER TABLE connections ADD COLUMN generation INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE connections ADD COLUMN status TEXT NOT NULL DEFAULT 'unverified';
 ALTER TABLE connections ADD COLUMN created_at TEXT NOT NULL DEFAULT '';
 ALTER TABLE connections ADD COLUMN last_tested_at TEXT NOT NULL DEFAULT '';`},
+	{"reading provenance and normalized order", `ALTER TABLE entries ADD COLUMN identity_scope TEXT NOT NULL DEFAULT 'public';
+ALTER TABLE entries ADD COLUMN source_title TEXT NOT NULL DEFAULT '';
+ALTER TABLE entries ADD COLUMN sort_at INTEGER NOT NULL DEFAULT 0;
+UPDATE entries SET sort_at=COALESCE(CAST(strftime('%s',published_at) AS INTEGER),CAST(strftime('%s',collected_at) AS INTEGER),0)*1000000000;
+CREATE TABLE entry_sources(entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,item_key TEXT NOT NULL,PRIMARY KEY(entry_id,source_id),UNIQUE(source_id,item_key));
+INSERT INTO entry_sources(entry_id,source_id,item_key) SELECT id,source_id,item_key FROM entries WHERE source_id IS NOT NULL;
+CREATE INDEX entry_sources_by_source ON entry_sources(source_id,entry_id);
+CREATE INDEX entries_by_owner_order ON entries(owner_id,sort_at DESC,id DESC);
+CREATE INDEX entries_by_owner_url ON entries(owner_id,identity_scope,url);`},
 }
 
 func schemaVersion() int { return len(migrations) }

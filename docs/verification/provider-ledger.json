@@ -1,0 +1,11 @@
+{
+  "updated_at": "2026-10-22",
+  "scope": "Fixtures validate implementation. No real private account credential was supplied.",
+  "providers": [
+    {"provider":"rss","fixture":"feed_test.go; adapter_contract_test.go","live":"unverified","required":"actual selected public feeds on operating host"},
+    {"provider":"weather","fixture":"weather_test.go; adapter_contract_test.go; weather.spec.ts","live":"unverified","required":"Open-Meteo forecast and city search on operating host"},
+    {"provider":"github","fixture":"github_test.go; cache_identity_test.go; adapter_contract_test.go; github.spec.ts","live":"unverified; cloud api.github.com returns proxy 403","required":"public and selected read-only private repository permissions"},
+    {"provider":"ical","fixture":"ical_test.go; adapter_contract_test.go; agenda.spec.ts","live":"unverified","required":"actual selected private calendar, timezone and recurrence acceptance"},
+    {"provider":"json","fixture":"json_source_test.go; adapter_contract_test.go; json.spec.ts","live":"unverified","required":"actual selected endpoint, token permissions and pointer"}
+  ]
+}

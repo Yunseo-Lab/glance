@@ -58,6 +58,10 @@ func TestPrivateGitHubCacheIdentityGenerationRevocationAndRotation(t *testing.T)
 			t.Fatal(err)
 		}
 	}
+	ingestForTest(t, store, source, FeedData{Items: []FeedItem{{ID: "private-unsaved", Title: "Unsaved", URL: "https://github.com/owner/private/issues/1"}, {ID: "private-saved", Title: "Saved", URL: "https://github.com/owner/private/issues/2"}}}, now)
+	var savedEntryID string
+	store.db.QueryRow("SELECT id FROM entries WHERE title='Saved'").Scan(&savedEntryID)
+	store.db.Exec("INSERT INTO entry_state(owner_id,entry_id,is_saved,updated_at) VALUES('local',?,1,?)", savedEntryID, now.Format(time.RFC3339Nano))
 	if err = store.RevokeConnection(a.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -72,6 +76,11 @@ func TestPrivateGitHubCacheIdentityGenerationRevocationAndRotation(t *testing.T)
 	}
 	if _, err = provider.Fetch(context.Background(), source); err == nil {
 		t.Fatal("revoked credential used")
+	}
+	var privateCount int
+	store.db.QueryRow("SELECT count(*) FROM entries WHERE identity_scope=?", "connection:"+a.ID).Scan(&privateCount)
+	if privateCount != 1 {
+		t.Fatal("revocation did not preserve only explicitly saved reading data")
 	}
 	board.Title = "Revoked widget remains editable"
 	if _, err = store.Save(board); err != nil {

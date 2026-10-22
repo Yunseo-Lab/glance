@@ -140,8 +140,26 @@ func (b Board) Validate() error {
 		if _, ok := sources[s.ID]; ok {
 			return errors.New("데이터 소스 ID가 중복됩니다")
 		}
-		if s.ConnectionID != "" && (!validID(s.ConnectionID) || s.Type != "github") {
+		if s.ConnectionID != "" && (!validID(s.ConnectionID) || s.Type != "github" && s.Type != "ical" && s.Type != "json") {
 			return errors.New("지원하지 않는 개인 연결입니다")
+		}
+		if s.Type == "json" {
+			var config JSONSource
+			if err := decodeConfig(s.Config, &config); err != nil {
+				return err
+			}
+			if (s.ConnectionID == "") == (config.URL == "") {
+				return errors.New("공개 JSON 주소 또는 개인 연결 중 하나를 선택하세요")
+			}
+		}
+		if s.Type == "ical" {
+			var config ICalSource
+			if err := decodeConfig(s.Config, &config); err != nil {
+				return err
+			}
+			if (s.ConnectionID == "") == (config.URL == "") {
+				return errors.New("공개 일정 주소 또는 개인 연결 중 하나를 선택하세요")
+			}
 		}
 		sources[s.ID] = s
 		definition, ok := providerDefinitions[s.Type]

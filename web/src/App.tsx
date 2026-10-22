@@ -1,3 +1,4 @@
+import { appendFeeds } from "./editor/feedImport";
 import BoardManager from "./workspace/BoardManager";
 import { boardNotifications, announceBoard } from "./editor/boardNotifications";
 import ConflictReview from "./editor/ConflictReview";
@@ -16,6 +17,7 @@ import {
 import { useResource } from "./workspace/useResource";
 import { useEffect, useRef, useState, useReducer } from "react";
 import {
+  Braces,
   GitFork,
   Layers,
   Undo2,
@@ -74,7 +76,9 @@ import {
 const icons = {
   clock: Clock3,
   calendar: CalendarDays,
+  json: Braces,
   github: GitFork,
+  agenda: CalendarDays,
   rss: Rss,
   weather: CloudSun,
   bookmarks: Bookmark,
@@ -632,6 +636,17 @@ export default function App() {
             <SourcePanel
               boards={boards}
               onNavigate={(id) => navigate("board", id)}
+              onImportFeeds={(feeds) => {
+                const next = appendFeeds(draft, feeds);
+                dispatchEditor({ type: "replace", board: next });
+                dispatchEditor({ type: "begin" });
+                navigate("board");
+                setCategory("all");
+                setQuery("");
+                setNotice(
+                  "피드를 초안에 추가했습니다. 확인 후 대시보드 저장을 눌러주세요.",
+                );
+              }}
               onAddWidget={beginAdd}
             />
           )}

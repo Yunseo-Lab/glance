@@ -1,3 +1,4 @@
+import { widgetCatalog } from "../catalog";
 import type { Board } from "../types";
 export const draftPrefix = "glance:draft:";
 export const draftPreference = "glance:draft-opt-in";
@@ -30,14 +31,7 @@ export function encodeDraft(
     )
   )
     return;
-  const allowed = new Set([
-    "clock",
-    "calendar",
-    "note",
-    "bookmarks",
-    "rss",
-    "weather",
-  ]);
+  const allowed = new Set<string>(widgetCatalog.map((widget) => widget.type));
   if (draft.widgets.some((widget) => !allowed.has(widget.type))) return;
   const board = structuredClone(draft);
   board.sources = [];

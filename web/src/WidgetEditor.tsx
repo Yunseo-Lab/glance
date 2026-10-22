@@ -35,8 +35,15 @@ export default function WidgetEditor({
   const [limit, setLimit] = useState(widget?.config.limit || 5);
   const { data: connections = [] } = useResource<
     components["schemas"]["Connection"][]
-  >("/api/v1/connections", 0, type === "github");
+  >("/api/v1/connections", 0, ["github", "agenda", "json"].includes(type));
   const [connectionID, setConnectionID] = useState(source?.connectionId || "");
+  const [jsonPointer, setJSONPointer] = useState(
+    source?.config.pointer ?? "/value",
+  );
+  const [jsonUnit, setJSONUnit] = useState(widget?.config.unit || "");
+  const [agendaTimezone, setAgendaTimezone] = useState(
+    source?.config.timezone || "Asia/Seoul",
+  );
   const [repository, setRepository] = useState(
     source?.config.repository || "glanceapp/glance",
   );
@@ -79,6 +86,7 @@ export default function WidgetEditor({
       config: {},
     };
     if (type === "clock") next.config = { timezone };
+    if (type === "json") next.config = { unit: jsonUnit.trim() };
     if (type === "note") next.config = { body };
     if (type === "bookmarks")
       next.config = {
@@ -87,29 +95,38 @@ export default function WidgetEditor({
           url: link.url.trim(),
         })),
       };
-    if (type === "rss" || type === "github") next.config = { limit };
+    if (["rss", "github", "agenda"].includes(type)) next.config = { limit };
     let nextSource: Source | undefined;
-    if (type === "rss" || type === "weather" || type === "github") {
+    if (["rss", "weather", "github", "agenda", "json"].includes(type)) {
+      const sourceType = type === "agenda" ? "ical" : type;
       const config =
-        type === "github"
-          ? { repository: repository.trim(), view: githubView }
-          : type === "rss"
-            ? { url: url.trim() }
-            : {
-                latitude: latitude.trim() === "" ? NaN : Number(latitude),
-                longitude: longitude.trim() === "" ? NaN : Number(longitude),
-                location: location.trim(),
-                units:
-                  weatherUnits === "fahrenheit" || source?.config.units
-                    ? weatherUnits
-                    : undefined,
-                timezone: weatherTimezone.trim() || undefined,
-              };
+        type === "json"
+          ? { url: connectionID ? undefined : url.trim(), pointer: jsonPointer }
+          : type === "agenda"
+            ? {
+                url: connectionID ? undefined : url.trim(),
+                timezone: agendaTimezone,
+              }
+            : type === "github"
+              ? { repository: repository.trim(), view: githubView }
+              : type === "rss"
+                ? { url: url.trim() }
+                : {
+                    latitude: latitude.trim() === "" ? NaN : Number(latitude),
+                    longitude:
+                      longitude.trim() === "" ? NaN : Number(longitude),
+                    location: location.trim(),
+                    units:
+                      weatherUnits === "fahrenheit" || source?.config.units
+                        ? weatherUnits
+                        : undefined,
+                    timezone: weatherTimezone.trim() || undefined,
+                  };
       // Changing a shared source creates a new source; other widgets stay intact.
       const unchanged =
-        source?.type === type &&
+        source?.type === sourceType &&
         (source.connectionId || "") ===
-          (type === "github" ? connectionID : "") &&
+          (["github", "agenda", "json"].includes(type) ? connectionID : "") &&
         Object.keys({ ...source.config, ...config }).every(
           (key) =>
             JSON.stringify((source.config as Record<string, unknown>)[key]) ===
@@ -122,9 +139,11 @@ export default function WidgetEditor({
           : commit
             ? crypto.randomUUID()
             : "preview-source",
-        type,
+        type: sourceType as Source["type"],
         connectionId:
-          type === "github" && connectionID ? connectionID : undefined,
+          ["github", "agenda", "json"].includes(type) && connectionID
+            ? connectionID
+            : undefined,
         config,
       };
       next.sourceId = nextSource.id;
@@ -187,6 +206,7 @@ export default function WidgetEditor({
             type={type}
             onSelect={(next) => {
               setType(next);
+              setConnectionID("");
               setTitle(labels[next]);
             }}
           />
@@ -200,6 +220,7 @@ export default function WidgetEditor({
               onChange={(event) => {
                 const t = event.target.value as WidgetType;
                 setType(t);
+                setConnectionID("");
                 setTitle(labels[t]);
               }}
             >
@@ -249,6 +270,132 @@ export default function WidgetEditor({
             />
             <small>예: Asia/Seoul, America/New_York, Europe/London</small>
           </label>
+        )}
+        {type === "json" && (
+          <>
+            <label>
+              JSON 연결
+              <select
+                aria-label="JSON 연결"
+                value={connectionID}
+                onChange={(event) => setConnectionID(event.target.value)}
+              >
+                <option value="">공개 JSON 주소</option>
+                {connections
+                  .filter(
+                    (connection) =>
+                      connection.kind === "json" &&
+                      connection.hasSecret &&
+                      connection.status !== "revoked",
+                  )
+                  .map((connection) => (
+                    <option key={connection.id} value={connection.id}>
+                      {connection.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {!connectionID && (
+              <label>
+                공개 JSON 주소
+                <input
+                  aria-label="공개 JSON 주소"
+                  {...fieldProps("url")}
+                  type="url"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                />
+              </label>
+            )}
+            <label>
+              JSON Pointer
+              <input
+                aria-label="JSON Pointer"
+                {...fieldProps("pointer")}
+                value={jsonPointer}
+                maxLength={512}
+                onChange={(event) => setJSONPointer(event.target.value)}
+                placeholder="/current/value"
+              />
+            </label>
+            <label>
+              값의 단위
+              <input
+                aria-label="값의 단위"
+                {...fieldProps("unit")}
+                value={jsonUnit}
+                maxLength={40}
+                onChange={(event) => setJSONUnit(event.target.value)}
+              />
+            </label>
+            <p className="form-help">
+              객체나 목록 전체가 아닌 문자열·숫자·불리언 값 하나를 표시합니다.
+              /로 경로를 구분하고 ~1은 /, ~0은 ~입니다. 스크립트나 사용자 지정
+              헤더는 실행하지 않습니다.
+            </p>
+          </>
+        )}
+        {type === "agenda" && (
+          <>
+            <label>
+              일정 연결
+              <select
+                aria-label="일정 연결"
+                value={connectionID}
+                onChange={(event) => setConnectionID(event.target.value)}
+              >
+                <option value="">공개 iCalendar 주소</option>
+                {connections
+                  .filter(
+                    (connection) =>
+                      connection.kind === "calendar" &&
+                      connection.hasSecret &&
+                      connection.status !== "revoked",
+                  )
+                  .map((connection) => (
+                    <option key={connection.id} value={connection.id}>
+                      {connection.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {!connectionID && (
+              <label>
+                공개 일정 주소
+                <input
+                  aria-label="공개 일정 주소"
+                  {...fieldProps("url")}
+                  type="url"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                />
+              </label>
+            )}
+            <label>
+              일정 시간대
+              <input
+                aria-label="일정 시간대"
+                {...fieldProps("timezone")}
+                value={agendaTimezone}
+                onChange={(event) => setAgendaTimezone(event.target.value)}
+              />
+            </label>
+            <label>
+              표시할 일정 수
+              <input
+                aria-label="표시할 일정 수"
+                type="number"
+                min={1}
+                max={20}
+                value={limit}
+                onChange={(event) => setLimit(Number(event.target.value))}
+              />
+            </label>
+            <p className="form-help">
+              개인 일정 주소는 데이터 소스의 개인 연결에서 보호해 연결하세요.
+              쓰기 권한 없이 향후 31일의 일정을 표시합니다.
+            </p>
+          </>
         )}
         {type === "github" && (
           <>

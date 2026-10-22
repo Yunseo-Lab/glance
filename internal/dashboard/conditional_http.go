@@ -34,7 +34,7 @@ func (s *Store) validators(key string) (HTTPValidators, error) {
 	return validators, err
 }
 func (p *Providers) FetchCached(ctx context.Context, source Source) (any, error) {
-	if p.store == nil {
+	if p.store == nil || source.Type == "ical" {
 		return p.Fetch(ctx, source)
 	}
 	key, err := p.store.cacheKey(source)
@@ -81,6 +81,19 @@ func (s *Store) writeSnapshot(key string, snapshot Snapshot, validators *HTTPVal
 	}
 	if _, err = tx.Exec("INSERT INTO snapshots(cache_key,document) VALUES(?,?) ON CONFLICT(cache_key) DO UPDATE SET document=excluded.document", key, data); err != nil {
 		return false, err
+	}
+	if fence != nil && fence.Token != "" && snapshot.State == "fresh" {
+		var document []byte
+		var source Source
+		if err = tx.QueryRow("SELECT document FROM sources WHERE id=? AND owner_id='local'", fence.SourceID).Scan(&document); err != nil {
+			return false, err
+		}
+		if err = json.Unmarshal(document, &source); err != nil {
+			return false, err
+		}
+		if _, err = ingestFeedEntries(tx, source, snapshot.Data, fence.Now); err != nil {
+			return false, err
+		}
 	}
 	if validators != nil {
 		if _, err = tx.Exec("INSERT INTO http_validators(cache_key,etag,last_modified,updated_at) VALUES(?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET etag=excluded.etag,last_modified=excluded.last_modified,updated_at=excluded.updated_at", key, validators.ETag, validators.LastModified, time.Now().UTC().Format(time.RFC3339)); err != nil {

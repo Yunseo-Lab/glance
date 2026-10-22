@@ -54,7 +54,7 @@ func replaceSourceRefs(tx *sql.Tx, boardID string, sources []Source) error {
 		if source.ConnectionID != "" {
 			var kind, status string
 			var secret bool
-			if err := tx.QueryRow("SELECT kind,status,COALESCE(length(encrypted_secret)>0,0) FROM connections WHERE id=? AND owner_id='local'", source.ConnectionID).Scan(&kind, &status, &secret); err != nil || kind != source.Type {
+			if err := tx.QueryRow("SELECT kind,status,COALESCE(length(encrypted_secret)>0,0) FROM connections WHERE id=? AND owner_id='local'", source.ConnectionID).Scan(&kind, &status, &secret); err != nil || kind != connectionKindForSource(source.Type) {
 				return ErrInvalidInput
 			}
 			connectionRevoked = status == "revoked" || !secret
@@ -119,4 +119,11 @@ func (s *Store) Sources() ([]Source, error) {
 		out = append(out, source)
 	}
 	return out, rows.Err()
+}
+
+func connectionKindForSource(kind string) string {
+	if kind == "ical" {
+		return "calendar"
+	}
+	return kind
 }

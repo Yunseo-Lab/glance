@@ -279,5 +279,6 @@ func (r *Runtime) refresh(ctx context.Context, key string, source Source, state 
 	}
 	if _, err := r.store.writeSnapshot(key, snap, validators, &refreshFence{SourceID: source.ID, Token: leaseToken, Now: r.now()}); err != nil {
 		log.Printf("dashboard cache write: %v", err)
+		nextRun = r.now().Add(30 * time.Second)
 	}
 }

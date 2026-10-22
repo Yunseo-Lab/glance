@@ -1,3 +1,4 @@
+import type { components } from "./generated/api";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -166,6 +167,75 @@ const renderers: Record<
           <p className="muted">편집에서 즐겨찾기를 추가하세요.</p>
         )}
       </div>
+    );
+  },
+  json: ({ widget, snapshot }) => {
+    const data = snapshot?.data as
+      | components["schemas"]["JSONValueData"]
+      | undefined;
+    return (
+      <>
+        <RemoteStatus snapshot={snapshot} />
+        {data && (
+          <div className="json-value">
+            <strong>{data.value}</strong>
+            {widget.config.unit && <small>{widget.config.unit}</small>}
+          </div>
+        )}
+        <Updated snapshot={snapshot} sourceID={widget.sourceId} />
+      </>
+    );
+  },
+  agenda: ({ widget, snapshot }) => {
+    const data = snapshot?.data as
+      | components["schemas"]["CalendarData"]
+      | undefined;
+    return (
+      <>
+        <RemoteStatus snapshot={snapshot} />
+        {data && (
+          <div className="agenda-list">
+            {data.warnings.map((warning, index) => (
+              <p className="source-notice" role="status" key={index}>
+                {warning}
+              </p>
+            ))}
+            {data.events.slice(0, widget.config.limit || 5).map((event) => (
+              <div className="agenda-event" key={event.id}>
+                <time dateTime={event.start}>
+                  {new Intl.DateTimeFormat("ko-KR", {
+                    timeZone: event.timezone,
+                    month: "short",
+                    day: "numeric",
+                    ...(event.allDay
+                      ? {}
+                      : { hour: "2-digit", minute: "2-digit" }),
+                  }).format(new Date(event.start))}
+                  {event.allDay ? " · 종일" : ` · ${event.timezone}`}
+                </time>
+                <strong>
+                  {event.url ? (
+                    <a
+                      href={safeURL(event.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {event.title}
+                    </a>
+                  ) : (
+                    event.title
+                  )}
+                </strong>
+                {event.location && <small>{event.location}</small>}
+              </div>
+            ))}
+            {data.events.length === 0 && (
+              <p className="muted">다가오는 일정이 없습니다.</p>
+            )}
+          </div>
+        )}
+        <Updated snapshot={snapshot} sourceID={widget.sourceId} />
+      </>
     );
   },
   github: (props) => renderers.rss(props),

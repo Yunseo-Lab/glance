@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+type sensitiveRequestKey struct{}
+
 type Providers struct {
 	resolve    func(context.Context, string) ([]net.IP, error)
 	proxy      func(*http.Request) (*url.URL, error)
@@ -133,6 +135,13 @@ func NewProviders(stores ...*Store) *Providers {
 		return nil, last
 	}
 	p.client = &http.Client{Transport: transport, Timeout: 8 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) > 0 && via[0].Context().Value(sensitiveRequestKey{}) == true {
+			req.Header.Del("Referer")
+			if !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+				req.Header.Del("Authorization")
+				return errors.New("private connection redirect changed origin")
+			}
+		}
 		if len(via) > 0 && req.URL.Host != via[0].URL.Host {
 			req.Header.Del("Authorization")
 		}
@@ -147,6 +156,9 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 	return p.getWithHeaders(ctx, address, nil)
 }
 func (p *Providers) getWithHeaders(ctx context.Context, address string, headers http.Header) ([]byte, error) {
+	if headers.Get("Authorization") != "" {
+		ctx = context.WithValue(ctx, sensitiveRequestKey{}, true)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	if err != nil {
 		return nil, err

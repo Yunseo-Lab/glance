@@ -37,6 +37,7 @@ func (s *Store) TestConnection(ctx context.Context, id string, p *Providers) (Co
 	if connection.Kind == "github" {
 		address = "https://api.github.com/user"
 	}
+	ctx = context.WithValue(ctx, sensitiveRequestKey{}, true)
 	request, err := http.NewRequestWithContext(ctx, "GET", address, nil)
 	if err == nil {
 		err = p.checkRequest(request)

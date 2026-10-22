@@ -119,6 +119,9 @@ func (s *Store) RevokeConnection(id string) error {
 	if err = clearConnectionCaches(tx, id, previousGeneration); err != nil {
 		return err
 	}
+	if _, err = tx.Exec("DELETE FROM entries WHERE owner_id='local' AND identity_scope=? AND NOT EXISTS(SELECT 1 FROM entry_state st WHERE st.owner_id='local' AND st.entry_id=entries.id AND st.is_saved=1)", "connection:"+id); err != nil {
+		return err
+	}
 	result, err := tx.Exec("UPDATE connections SET encrypted_secret=NULL,status='revoked',generation=generation+1 WHERE id=? AND owner_id='local'", id)
 	if err != nil {
 		return err

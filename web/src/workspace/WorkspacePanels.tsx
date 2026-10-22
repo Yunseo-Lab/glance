@@ -1,3 +1,5 @@
+import OPMLImporter from "./OPMLImporter";
+import type { FeedImportItem } from "../editor/feedImport";
 import {
   Database,
   ExternalLink,
@@ -46,11 +48,14 @@ export function SourcePanel({
   boards,
   onNavigate,
   onAddWidget,
+  onImportFeeds,
 }: {
   boards: Board[];
   onNavigate: (id: string) => void;
   onAddWidget: () => void;
+  onImportFeeds: (feeds: FeedImportItem[]) => void;
 }) {
+  const [importing, setImporting] = useState(false);
   const { data, error, reload } = useResource<SourceStatus[]>(
     "/api/v1/sources",
     15000,
@@ -122,6 +127,15 @@ export function SourcePanel({
           <LoaderCircle className="spin" size={16} /> 연결 상태를 확인하고
           있어요.
         </p>
+      )}
+      <button className="button secondary" onClick={() => setImporting(true)}>
+        피드 묶음 가져오기
+      </button>
+      {importing && (
+        <OPMLImporter
+          onClose={() => setImporting(false)}
+          onApply={onImportFeeds}
+        />
       )}
       <ConnectionManager onChanged={reload} />
       <div className="section-heading">
@@ -233,66 +247,11 @@ export function SourcePanel({
     </>
   );
 }
-export function ReadingPanel({
-  board,
-  snapshots,
-}: {
-  board: Board;
-  snapshots: Record<string, Snapshot>;
-}) {
-  const items = new Map<
-    string,
-    { title: string; url: string; source: string; publishedAt?: string }
-  >();
-  for (const source of board.sources.filter((source) =>
-    ["rss", "github"].includes(source.type),
-  )) {
-    const data = snapshots[source.id]?.data as FeedData | undefined;
-    for (const item of Array.isArray(data?.items) ? data.items : [])
-      if (!items.has(item.url))
-        items.set(item.url, { ...item, source: data!.title });
-  }
-  return (
-    <>
-      <PanelHeading
-        title="모아 읽기"
-        description="이 보드의 소식 위젯에서 도착한 최신 항목을 모았습니다."
-        Icon={Inbox}
-      />
-      <div className="reading-list">
-        {[...items.values()].map((item) => (
-          <a
-            className="resource-card"
-            key={item.url}
-            href={safeExternalURL(item.url)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <div>
-              <small>{item.source}</small>
-              <h2>{item.title}</h2>
-              {item.publishedAt && (
-                <small>
-                  {new Date(item.publishedAt).toLocaleString("ko-KR")}
-                </small>
-              )}
-            </div>
-            <ExternalLink size={16} />
-          </a>
-        ))}
-      </div>
-      {items.size === 0 && (
-        <div className="empty-board">
-          <Inbox size={30} />
-          <h2>아직 도착한 소식이 없습니다</h2>
-          <p>소식 위젯이 갱신되면 원문을 여기서 모아볼 수 있습니다.</p>
-        </div>
-      )}
-    </>
-  );
-}
+export { default as ReadingPanel } from "./ReadingInbox";
 export function SettingsPanel() {
   const { data, error, reload } = useResource<{
+    entries: number;
+    entryCapacityReached: boolean;
     activeSources: number;
     runningSources: number;
     failedSources: number;
@@ -335,6 +294,14 @@ export function SettingsPanel() {
         <section className="resource-card">
           <div>
             <h2>내 데이터 보관</h2>
+            {data && (
+              <p>
+                모아 읽기 {data.entries.toLocaleString()} /{" "}
+                {data.limits.entries.toLocaleString()}개
+                {data.entryCapacityReached &&
+                  " · 보관 한도에 도달해 새 항목 수집을 보류하고 있습니다."}
+              </p>
+            )}
             <p>
               저장하지 않은 항목은 90일 뒤 정리합니다. 저장한 항목과
               메모·북마크는 자동 정리로 지우지 않습니다.

@@ -58,7 +58,7 @@ func sourceURLHost(source Source) string {
 	}
 	_ = json.Unmarshal(source.Config, &config)
 	u, err := url.Parse(config.URL)
-	if err != nil {
+	if err != nil || u.Hostname() == "" {
 		return source.Type
 	}
 	return strings.ToLower(u.Hostname())
