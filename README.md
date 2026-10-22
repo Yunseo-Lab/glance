@@ -1,4 +1,7 @@
 > **개인용 웹 대시보드:** 브라우저에서 위젯을 편집하고 SQLite에 저장하는 새 모드가 추가되었습니다.
+
+개인용 dashboard의 SQLite 검색 빌드는 CGO와 FTS5가 필요합니다. `bash scripts/build-dashboard.sh` 또는 `CGO_ENABLED=1 go build -tags sqlite_fts5 -o build/glance .`를 사용하세요. 검증은 `go test -tags sqlite_fts5 -race ./...`입니다. 기존 YAML 실행 모드는 유지합니다.
+
 > [사용 방법](docs/editable-dashboard.md) · [맥 미니 배포·복구](docs/operations.md) · [출시 검증 현황](docs/release-readiness.md)
 > [계속 갱신하는 구현 현황](docs/frontier-progress.md) · [80단계 구현 계획](docs/frontier-implementation-plan.md) · [관련 저장소 비교](docs/research/related-repositories.md)
 

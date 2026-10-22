@@ -33,6 +33,36 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("GET /api/v1/capabilities", func(w http.ResponseWriter, r *http.Request) {
+		var version string
+		if err := service.store.db.QueryRow("SELECT sqlite_version()").Scan(&version); err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, map[string]any{"sqliteVersion": version, "fts5": true, "searchTokenizer": "trigram"})
+	})
+
+	mux.HandleFunc("POST /api/v1/entries/bulk/state", func(w http.ResponseWriter, r *http.Request) {
+		var input EntryBulkInput
+		if !readMutation(w, r, &input) {
+			return
+		}
+		result, err := service.store.BulkEntryState(input)
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, result)
+	})
+	mux.HandleFunc("GET /api/v1/tags", func(w http.ResponseWriter, r *http.Request) {
+		tags, err := service.store.EntryTags()
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, tags)
+	})
+
 	mux.HandleFunc("GET /api/v1/entries", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		limit := 0

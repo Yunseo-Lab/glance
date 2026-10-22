@@ -1,0 +1,50 @@
+{
+  "entries": 10000,
+  "runtime": "go1.27.3",
+  "sqlite": "3.53.4",
+  "measurements": [
+    {
+      "query": "프론티어",
+      "samples": 30,
+      "p50_ms": 11.409,
+      "p95_ms": 12.145,
+      "matches": 10000
+    },
+    {
+      "query": "서울",
+      "samples": 30,
+      "p50_ms": 312.39,
+      "p95_ms": 335.839,
+      "matches": 10000
+    },
+    {
+      "query": "서",
+      "samples": 30,
+      "p50_ms": 324.152,
+      "p95_ms": 341.626,
+      "matches": 10000
+    },
+    {
+      "query": "Go",
+      "samples": 30,
+      "p50_ms": 324.476,
+      "p95_ms": 343.094,
+      "matches": 10000
+    },
+    {
+      "query": "é",
+      "samples": 30,
+      "p50_ms": 318.383,
+      "p95_ms": 356.883,
+      "matches": 10000
+    },
+    {
+      "query": "없는검색어",
+      "samples": 30,
+      "p50_ms": 1.294,
+      "p95_ms": 1.514,
+      "matches": 0
+    }
+  ],
+  "scope": "Single client in this Linux cloud, not eight concurrent clients or Mac mini"
+}

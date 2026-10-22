@@ -18,7 +18,7 @@ jobs:
         with:
           go-version-file: go.mod
       - run: bash scripts/build-dashboard.sh
-      - run: go test ./...
+      - run: go test -tags sqlite_fts5 ./...
       - name: Package native binary and checksum
         shell: bash
         run: |

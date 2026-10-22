@@ -13,10 +13,65 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/capabilities:
+    get:
+      operationId: getCapabilities
+      responses:
+        '200':
+          description: SQLite FTS5 and trigram availability checked before database migration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sqliteVersion, fts5, searchTokenizer]
+                properties:
+                  sqliteVersion:
+                    type: string
+                  fts5:
+                    type: boolean
+                  searchTokenizer:
+                    type: string
+  /api/v1/tags:
+    get:
+      operationId: listEntryTags
+      responses:
+        '200':
+          description: Up to 100 owner tags, sorted by entry count
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntryTag'
+  /api/v1/entries/bulk/state:
+    post:
+      operationId: bulkEntryState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryBulkInput'
+      responses:
+        '200':
+          description: All requested owner entries updated atomically
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryBulkResult'
+        '400':
+          description: Empty, oversized or invalid update
+        '404':
+          description: One or more entries not found; no changes committed
   /api/v1/entries:
     get:
       operationId: listEntries
       parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
         - name: status
           in: query
           schema:
@@ -27,6 +82,10 @@ paths:
           schema:
             type: string
         - name: source
+          in: query
+          schema:
+            type: string
+        - name: tag
           in: query
           schema:
             type: string
@@ -793,6 +852,41 @@ components:
         timezone:
           type: string
 
+    EntryTag:
+      type: object
+      required: [tag, count]
+      properties:
+        tag:
+          type: string
+        count:
+          type: integer
+    EntryBulkResult:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: integer
+    EntryBulkInput:
+      type: object
+      additionalProperties: false
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+        read:
+          type: boolean
+        saved:
+          type: boolean
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 40
     Entry:
       type: object
       required: [id, title, url, excerpt, collectedAt, sourceTitle, sourceIds, isRead, isSaved, tags]
@@ -860,6 +954,12 @@ components:
       additionalProperties: false
       minProperties: 1
       properties:
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 40
         read:
           type: boolean
         saved:

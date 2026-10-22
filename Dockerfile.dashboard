@@ -19,7 +19,7 @@ COPY main.go ./
 COPY internal/ internal/
 COPY pkg/ pkg/
 COPY --from=frontend /src/internal/dashboard/ui/dist/ internal/dashboard/ui/dist/
-RUN go build -mod=readonly -p=4 -trimpath -ldflags="-s -w" -o /out/glance .
+RUN go build -tags sqlite_fts5 -mod=readonly -p=4 -trimpath -ldflags="-s -w" -o /out/glance .
 
 FROM debian:bookworm-slim@sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8
 WORKDIR /app

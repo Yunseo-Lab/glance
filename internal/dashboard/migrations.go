@@ -46,6 +46,14 @@ INSERT INTO entry_sources(entry_id,source_id,item_key) SELECT id,source_id,item_
 CREATE INDEX entry_sources_by_source ON entry_sources(source_id,entry_id);
 CREATE INDEX entries_by_owner_order ON entries(owner_id,sort_at DESC,id DESC);
 CREATE INDEX entries_by_owner_url ON entries(owner_id,identity_scope,url);`},
+	{"FTS5 trigram reading search", `CREATE VIRTUAL TABLE entry_fts USING fts5(title,excerpt,source_title,content='entries',content_rowid='rowid',tokenize='trigram');
+CREATE TRIGGER entry_search_insert AFTER INSERT ON entries BEGIN INSERT INTO entry_fts(rowid,title,excerpt,source_title) VALUES(new.rowid,new.title,new.excerpt,new.source_title); END;
+CREATE TRIGGER entry_search_delete AFTER DELETE ON entries BEGIN INSERT INTO entry_fts(entry_fts,rowid,title,excerpt,source_title) VALUES('delete',old.rowid,old.title,old.excerpt,old.source_title); END;
+CREATE TRIGGER entry_search_update AFTER UPDATE OF title,excerpt,source_title ON entries BEGIN INSERT INTO entry_fts(entry_fts,rowid,title,excerpt,source_title) VALUES('delete',old.rowid,old.title,old.excerpt,old.source_title); INSERT INTO entry_fts(rowid,title,excerpt,source_title) VALUES(new.rowid,new.title,new.excerpt,new.source_title); END;
+INSERT INTO entry_fts(entry_fts) VALUES('rebuild');`},
+	{"persisted Unicode short-query search text", `ALTER TABLE entries ADD COLUMN search_fold TEXT NOT NULL DEFAULT '';
+CREATE TRIGGER entry_fold_insert AFTER INSERT ON entries BEGIN UPDATE entries SET search_fold=glance_fold(new.title||' '||new.excerpt||' '||new.source_title) WHERE rowid=new.rowid; END;
+CREATE TRIGGER entry_fold_update AFTER UPDATE OF title,excerpt,source_title ON entries BEGIN UPDATE entries SET search_fold=glance_fold(new.title||' '||new.excerpt||' '||new.source_title) WHERE rowid=new.rowid; END;`},
 }
 
 func schemaVersion() int { return len(migrations) }
@@ -86,6 +94,16 @@ func applyMigrations(db *sql.DB, steps []migration) error {
 	for i := version; i < len(steps); i++ {
 		if _, err = tx.Exec(steps[i].sql); err != nil {
 			return fmt.Errorf("migration %d failed: %w", i+1, err)
+		}
+		if i+1 == 12 {
+			if err = populateSearchFoldTx(tx); err != nil {
+				return err
+			}
+		}
+		if i+1 == 11 {
+			if err = normalizeEntryTextTx(tx); err != nil {
+				return err
+			}
 		}
 		if i+1 == 3 {
 			if err = normalizeSources(tx); err != nil {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/html"
+	"golang.org/x/text/unicode/norm"
 )
 
 func plainText(markup string, limit int) string {
@@ -51,7 +52,7 @@ func plainText(markup string, limit int) string {
 	if len(runes) > limit {
 		text = string(runes[:limit]) + "…"
 	}
-	return text
+	return norm.NFC.String(text)
 }
 func canonicalArticleURL(address, base string) (string, error) {
 	link, err := url.Parse(strings.TrimSpace(address))

@@ -1,5 +1,53 @@
 // Generated from docs/dashboard-api.openapi.yaml; do not edit.
 export interface paths {
+    "/api/v1/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listEntryTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entries/bulk/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulkEntryState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entries": {
         parameters: {
             query?: never;
@@ -595,6 +643,19 @@ export interface components {
             longitude: number;
             timezone: string;
         };
+        EntryTag: {
+            tag: string;
+            count: number;
+        };
+        EntryBulkResult: {
+            updated: number;
+        };
+        EntryBulkInput: {
+            ids: string[];
+            read?: boolean;
+            saved?: boolean;
+            tags?: string[];
+        };
         Entry: {
             id: string;
             title: string;
@@ -624,6 +685,7 @@ export interface components {
             updatedAt: string;
         };
         EntryStateInput: {
+            tags?: string[];
             read?: boolean;
             saved?: boolean;
         };
@@ -737,12 +799,96 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SQLite FTS5 and trigram availability checked before database migration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sqliteVersion: string;
+                        fts5: boolean;
+                        searchTokenizer: string;
+                    };
+                };
+            };
+        };
+    };
+    listEntryTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 100 owner tags, sorted by entry count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryTag"][];
+                };
+            };
+        };
+    };
+    bulkEntryState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryBulkInput"];
+            };
+        };
+        responses: {
+            /** @description All requested owner entries updated atomically */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryBulkResult"];
+                };
+            };
+            /** @description Empty, oversized or invalid update */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description One or more entries not found; no changes committed */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listEntries: {
         parameters: {
             query?: {
+                q?: string;
                 status?: "all" | "unread" | "read" | "saved";
                 board?: string;
                 source?: string;
+                tag?: string;
                 cursor?: string;
                 limit?: number;
             };

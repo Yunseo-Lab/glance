@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bookmark,
   BookmarkCheck,
@@ -6,29 +6,70 @@ import {
   ExternalLink,
   Inbox,
   RefreshCw,
+  Tag,
 } from "lucide-react";
 import type { components } from "../generated/api";
 import { request, type Board, type Snapshot } from "../types";
 import { safeExternalURL } from "../links";
 import { queryClient } from "./queries";
 import { useResource } from "./useResource";
+import EntryTagEditor from "./EntryTagEditor";
 type Entry = components["schemas"]["Entry"];
 type Page = components["schemas"]["EntryPage"];
 type State = components["schemas"]["EntryState"];
 type Input = components["schemas"]["EntryStateInput"];
+type SourceStatus = components["schemas"]["SourceStatus"];
 const isEntryQuery = (query: { queryKey: readonly unknown[] }) =>
   String(query.queryKey[1]).startsWith("/api/v1/entries?");
-export default function ReadingInbox(_: {
+export default function ReadingInbox({
+  board,
+}: {
   board: Board;
   snapshots: Record<string, Snapshot>;
 }) {
+  const [searchInput, setSearchInput] = useState(""),
+    [searchQuery, setSearchQuery] = useState(""),
+    [composing, setComposing] = useState(false);
   const [status, setStatus] = useState("all"),
+    [scope, setScope] = useState(""),
+    [source, setSource] = useState(""),
+    [tag, setTag] = useState(""),
     [cursor, setCursor] = useState(""),
     [history, setHistory] = useState<string[]>([]),
     [busy, setBusy] = useState<Set<string>>(new Set()),
-    [failure, setFailure] = useState("");
-  const path = `/api/v1/entries?status=${status}&limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
-  const { data, error, reload } = useResource<Page>(path, 15000);
+    [failure, setFailure] = useState(""),
+    [selected, setSelected] = useState<Set<string>>(new Set()),
+    [tagEditor, setTagEditor] = useState<Entry[]>();
+  const parameters = new URLSearchParams({ status, limit: "30" });
+  if (searchQuery) parameters.set("q", searchQuery);
+  if (scope) parameters.set("board", scope);
+  if (source) parameters.set("source", source);
+  if (tag) parameters.set("tag", tag);
+  if (cursor) parameters.set("cursor", cursor);
+  const path = "/api/v1/entries?" + parameters;
+  const { data, error, reload } = useResource<Page>(path, 15000),
+    { data: tags = [] } =
+      useResource<components["schemas"]["EntryTag"][]>("/api/v1/tags"),
+    { data: sources = [] } = useResource<SourceStatus[]>(
+      "/api/v1/sources",
+      15000,
+    );
+  useEffect(() => {
+    setSelected(new Set());
+  }, [path]);
+  useEffect(() => {
+    if (composing) return;
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+      setCursor("");
+      setHistory([]);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput, composing]);
+  function resetPage() {
+    setCursor("");
+    setHistory([]);
+  }
   function update(id: string, changes: Partial<Entry>) {
     queryClient.setQueriesData<Page>({ predicate: isEntryQuery }, (current) =>
       current
@@ -41,47 +82,68 @@ export default function ReadingInbox(_: {
         : current,
     );
   }
-  async function mutate(item: Entry, input: Input) {
-    if (busy.has(item.id)) return;
-    setBusy((current) => new Set(current).add(item.id));
+  async function mutateMany(items: Entry[], input: Input): Promise<boolean> {
+    if (items.length === 0 || items.some((item) => busy.has(item.id)))
+      return false;
+    setBusy(
+      (current) => new Set([...current, ...items.map((item) => item.id)]),
+    );
     setFailure("");
     await queryClient.cancelQueries({ predicate: isEntryQuery });
-    const previous = {
-      isRead: item.isRead,
-      isSaved: item.isSaved,
-      tags: item.tags,
-    };
-    update(item.id, {
-      ...(input.read === undefined ? {} : { isRead: input.read }),
-      ...(input.saved === undefined ? {} : { isSaved: input.saved }),
-    });
-    try {
-      const result = await request<State>(`/api/v1/entries/${item.id}/state`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+    const previous = new Map(
+      items.map((item) => [
+        item.id,
+        { isRead: item.isRead, isSaved: item.isSaved, tags: item.tags },
+      ]),
+    );
+    for (const item of items)
+      update(item.id, {
+        ...(input.read === undefined ? {} : { isRead: input.read }),
+        ...(input.saved === undefined ? {} : { isSaved: input.saved }),
+        ...(input.tags === undefined ? {} : { tags: input.tags }),
       });
-      update(item.id, result);
+    try {
+      if (items.length === 1) {
+        const result = await request<State>(
+          `/api/v1/entries/${items[0].id}/state`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+          },
+        );
+        update(items[0].id, result);
+      } else
+        await request("/api/v1/entries/bulk/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: items.map((item) => item.id), ...input }),
+        });
+      return true;
     } catch (err) {
-      update(item.id, previous);
+      for (const [id, state] of previous) update(id, state);
       setFailure((err as Error).message);
+      return false;
     } finally {
       setBusy((current) => {
         const next = new Set(current);
-        next.delete(item.id);
+        for (const item of items) next.delete(item.id);
         return next;
       });
       void queryClient.invalidateQueries({ predicate: isEntryQuery });
     }
   }
   const items =
-    data?.items.filter((item) =>
-      status === "unread"
-        ? !item.isRead
-        : status === "saved"
-          ? item.isSaved
-          : true,
+    data?.items.filter(
+      (item) =>
+        (status === "unread"
+          ? !item.isRead
+          : status === "saved"
+            ? item.isSaved
+            : true) &&
+        (!tag || item.tags.includes(tag)),
     ) || [];
+  const selectedItems = items.filter((item) => selected.has(item.id));
   return (
     <>
       <section className="page-heading">
@@ -90,9 +152,7 @@ export default function ReadingInbox(_: {
             <Inbox size={17} />
           </span>
           <h1>모아 읽기</h1>
-          <p>
-            모든 보드에서 수집한 소식과 읽음·저장 기록을 내 서버에 보관합니다.
-          </p>
+          <p>수집한 소식과 읽음·저장·태그 기록을 내 서버에 보관합니다.</p>
         </div>
         <button
           className="icon-button"
@@ -102,6 +162,24 @@ export default function ReadingInbox(_: {
           <RefreshCw size={17} />
         </button>
       </section>
+      <label className="reading-search">
+        수집한 소식 검색
+        <input
+          aria-label="수집한 소식 검색"
+          value={searchInput}
+          maxLength={200}
+          placeholder="제목·본문·소스에서 검색"
+          onChange={(event) => setSearchInput(event.target.value)}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              setSearchQuery(searchInput.trim());
+              resetPage();
+            }
+          }}
+        />
+      </label>
       <div className="reading-toolbar" role="group" aria-label="읽기 상태 필터">
         {[
           ["all", "전체"],
@@ -114,8 +192,7 @@ export default function ReadingInbox(_: {
             aria-pressed={status === value}
             onClick={() => {
               setStatus(value);
-              setCursor("");
-              setHistory([]);
+              resetPage();
             }}
           >
             {label}
@@ -124,6 +201,67 @@ export default function ReadingInbox(_: {
         <small>
           {data ? `${data.total.toLocaleString()}개 항목` : "불러오는 중"}
         </small>
+      </div>
+      <div className="reading-filters">
+        <label>
+          보드 범위
+          <select
+            aria-label="보드 범위"
+            value={scope}
+            onChange={(event) => {
+              setScope(event.target.value);
+              resetPage();
+            }}
+          >
+            <option value="">모든 보드</option>
+            <option value={board.id}>{board.title}</option>
+          </select>
+        </label>
+        <label>
+          소스별 보기
+          <select
+            aria-label="소스별 보기"
+            value={source}
+            onChange={(event) => {
+              setSource(event.target.value);
+              resetPage();
+            }}
+          >
+            <option value="">모든 소스</option>
+            {sources
+              .filter((item) => ["rss", "github"].includes(item.source.type))
+              .map((item) => (
+                <option key={item.source.id} value={item.source.id}>
+                  {item.source.config.repository ||
+                    (() => {
+                      try {
+                        return new URL(item.source.config.url || "").hostname;
+                      } catch {
+                        return item.source.type;
+                      }
+                    })()}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          태그별 보기
+          <select
+            aria-label="태그별 보기"
+            value={tag}
+            onChange={(event) => {
+              setTag(event.target.value);
+              resetPage();
+            }}
+          >
+            <option value="">모든 태그</option>
+            {tags.map((item) => (
+              <option key={item.tag} value={item.tag}>
+                {item.tag} ({item.count})
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {data?.capacityReached && (
         <p className="banner" role="status">
@@ -139,6 +277,51 @@ export default function ReadingInbox(_: {
           </button>
         </p>
       )}
+      {items.length > 0 && (
+        <div className="reading-bulk">
+          <label>
+            <input
+              aria-label="이 페이지 모두 선택"
+              type="checkbox"
+              checked={items.every((item) => selected.has(item.id))}
+              onChange={(event) =>
+                setSelected(
+                  event.target.checked
+                    ? new Set(items.map((item) => item.id))
+                    : new Set(),
+                )
+              }
+            />{" "}
+            이 페이지 모두 선택
+          </label>
+          {selectedItems.length > 0 && (
+            <>
+              <span>{selectedItems.length}개 선택</span>
+              <button
+                className="button secondary"
+                disabled={busy.size > 0}
+                onClick={() => void mutateMany(selectedItems, { read: true })}
+              >
+                선택 항목 읽음
+              </button>
+              <button
+                className="button secondary"
+                disabled={busy.size > 0}
+                onClick={() => void mutateMany(selectedItems, { saved: true })}
+              >
+                선택 항목 저장
+              </button>
+              <button
+                className="button secondary"
+                disabled={busy.size > 0}
+                onClick={() => setTagEditor(selectedItems)}
+              >
+                선택 태그 지정
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <div className="reading-list">
         {items.map((item) => (
           <article
@@ -147,6 +330,23 @@ export default function ReadingInbox(_: {
             data-entry-id={item.id}
           >
             <div>
+              <label className="entry-select">
+                <input
+                  type="checkbox"
+                  aria-label={`${item.title} 선택`}
+                  disabled={busy.has(item.id)}
+                  checked={selected.has(item.id)}
+                  onChange={(event) =>
+                    setSelected((current) => {
+                      const next = new Set(current);
+                      if (event.target.checked) next.add(item.id);
+                      else next.delete(item.id);
+                      return next;
+                    })
+                  }
+                />{" "}
+                선택
+              </label>
               <small>
                 {item.sourceTitle || "수집한 소식"} ·{" "}
                 {new Date(item.publishedAt || item.collectedAt).toLocaleString(
@@ -163,13 +363,29 @@ export default function ReadingInbox(_: {
                 </a>
               </h2>
               {item.excerpt && <p>{item.excerpt}</p>}
+              <div className="entry-tags">
+                {item.tags.map((value) => (
+                  <button
+                    className="tag-chip"
+                    key={value}
+                    onClick={() => {
+                      setTag(value);
+                      resetPage();
+                    }}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
               <div className="entry-actions">
                 <button
                   className="button secondary"
                   disabled={busy.has(item.id)}
                   aria-label={`${item.title} ${item.isRead ? "안 읽음으로" : "읽음으로"}`}
                   aria-pressed={item.isRead}
-                  onClick={() => void mutate(item, { read: !item.isRead })}
+                  onClick={() =>
+                    void mutateMany([item], { read: !item.isRead })
+                  }
                 >
                   <Check size={14} />
                   {item.isRead ? "읽음" : "안 읽음"}
@@ -179,7 +395,9 @@ export default function ReadingInbox(_: {
                   disabled={busy.has(item.id)}
                   aria-label={`${item.title} ${item.isSaved ? "저장 해제" : "저장"}`}
                   aria-pressed={item.isSaved}
-                  onClick={() => void mutate(item, { saved: !item.isSaved })}
+                  onClick={() =>
+                    void mutateMany([item], { saved: !item.isSaved })
+                  }
                 >
                   {item.isSaved ? (
                     <BookmarkCheck size={14} />
@@ -187,6 +405,15 @@ export default function ReadingInbox(_: {
                     <Bookmark size={14} />
                   )}{" "}
                   {item.isSaved ? "저장됨" : "저장"}
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={busy.has(item.id)}
+                  aria-label={`${item.title} 태그 편집`}
+                  onClick={() => setTagEditor([item])}
+                >
+                  <Tag size={14} />
+                  태그
                 </button>
               </div>
             </div>
@@ -201,9 +428,9 @@ export default function ReadingInbox(_: {
               ? "저장한 소식이 없습니다"
               : status === "unread"
                 ? "안 읽은 소식이 없습니다"
-                : "아직 도착한 소식이 없습니다"}
+                : "해당하는 소식이 없습니다"}
           </h2>
-          <p>RSS나 GitHub 위젯이 갱신되면 항목을 모아볼 수 있습니다.</p>
+          <p>필터를 바꾸거나 소식 위젯이 갱신된 뒤 확인해 보세요.</p>
         </div>
       )}
       <div className="reading-pagination">
@@ -228,6 +455,14 @@ export default function ReadingInbox(_: {
           다음 항목
         </button>
       </div>
+      {tagEditor && (
+        <EntryTagEditor
+          initial={tagEditor.length === 1 ? tagEditor[0].tags : []}
+          count={tagEditor.length}
+          onClose={() => setTagEditor(undefined)}
+          onSave={(tags) => mutateMany(tagEditor, { tags })}
+        />
+      )}
     </>
   );
 }

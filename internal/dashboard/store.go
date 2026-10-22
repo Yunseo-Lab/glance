@@ -11,8 +11,14 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
+
+func init() {
+	sql.Register("glance_sqlite3", &sqlite3.SQLiteDriver{ConnectHook: func(connection *sqlite3.SQLiteConn) error {
+		return connection.RegisterFunc("glance_fold", foldSearch, true)
+	}})
+}
 
 var ErrConflict = errors.New("다른 창에서 대시보드가 변경되었습니다. 새로고침 후 다시 편집하세요")
 
@@ -41,11 +47,15 @@ func OpenStore(path string) (*Store, error) {
 		return nil, err
 	}
 	u := url.URL{Scheme: "file", Path: abs, RawQuery: "_busy_timeout=5000&_foreign_keys=on"}
-	db, err := sql.Open("sqlite3", u.String())
+	db, err := sql.Open("glance_sqlite3", u.String())
 	if err != nil {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
+	if err := requireFTS5(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	s := &Store{db: db, path: abs, keyPath: os.Getenv("GLANCE_CONNECTION_KEY_FILE")}
 	if err = s.init(); err != nil {
 		db.Close()

@@ -35,8 +35,9 @@ type EntryState struct {
 	UpdatedAt string   `json:"updatedAt"`
 }
 type EntryStateInput struct {
-	Read  *bool `json:"read,omitempty"`
-	Saved *bool `json:"saved,omitempty"`
+	Read  *bool     `json:"read,omitempty"`
+	Saved *bool     `json:"saved,omitempty"`
+	Tags  *[]string `json:"tags,omitempty"`
 }
 type EntryFilter struct {
 	Status, BoardID, SourceID, Tag, Query, Cursor string
@@ -52,7 +53,7 @@ func (s *Store) Entries(filter EntryFilter) (EntryPage, error) {
 	if filter.Limit == 0 {
 		filter.Limit = 30
 	}
-	if filter.Limit < 1 || filter.Limit > 50 || filter.Query != "" || filter.Tag != "" {
+	if filter.Limit < 1 || filter.Limit > 50 {
 		return page, ErrInvalidInput
 	}
 	where := "e.owner_id='local'"
@@ -85,6 +86,23 @@ func (s *Store) Entries(filter EntryFilter) (EntryPage, error) {
 		where += " AND EXISTS(SELECT 1 FROM entry_sources es WHERE es.entry_id=e.id AND es.source_id=?)"
 		args = append(args, filter.SourceID)
 	}
+	if filter.Tag != "" {
+		tags, err := normalizeEntryTags([]string{filter.Tag})
+		if err != nil || len(tags) != 1 {
+			return page, ErrInvalidInput
+		}
+		where += " AND EXISTS(SELECT 1 FROM json_each(COALESCE(st.tags,'[]')) tag WHERE tag.value=?)"
+		args = append(args, tags[0])
+	}
+	if filter.Query != "" {
+		clause, arguments, err := entrySearchClause(filter.Query)
+		if err != nil {
+			return page, err
+		}
+		where += " AND (" + clause + ")"
+		args = append(args, arguments...)
+	}
+
 	from := " FROM entries e LEFT JOIN entry_state st ON st.entry_id=e.id AND st.owner_id='local' WHERE "
 	if err := s.db.QueryRow("SELECT count(*)"+from+where, args...).Scan(&page.Total); err != nil {
 		return page, err
@@ -173,23 +191,40 @@ func (s *Store) Entries(filter EntryFilter) (EntryPage, error) {
 }
 func (s *Store) SetEntryState(id string, input EntryStateInput) (EntryState, error) {
 	var out EntryState
-	if !validID(id) || input.Read == nil && input.Saved == nil {
-		return out, ErrInvalidInput
+	if err := validateEntryStateInput(&input); err != nil {
+		return out, err
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return out, err
 	}
 	defer tx.Rollback()
+	out, err = setEntryStateTx(tx, id, input, time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return out, err
+	}
+	if err = tx.Commit(); err != nil {
+		return out, err
+	}
+	return out, nil
+}
+func setEntryStateTx(tx *sql.Tx, id string, input EntryStateInput, now string) (EntryState, error) {
+	var out EntryState
+	if !validID(id) {
+		return out, ErrInvalidInput
+	}
 	var exists int
-	if err = tx.QueryRow("SELECT count(*) FROM entries WHERE id=? AND owner_id='local'", id).Scan(&exists); err != nil {
+	if err := tx.QueryRow("SELECT count(*) FROM entries WHERE id=? AND owner_id='local'", id).Scan(&exists); err != nil {
 		return out, err
 	}
 	if exists == 0 {
 		return out, ErrNotFound
 	}
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	_, err = tx.Exec("INSERT INTO entry_state(owner_id,entry_id,is_read,is_saved,updated_at) VALUES('local',?,COALESCE(?,0),COALESCE(?,0),?) ON CONFLICT(owner_id,entry_id) DO UPDATE SET is_read=COALESCE(?,entry_state.is_read),is_saved=COALESCE(?,entry_state.is_saved),updated_at=excluded.updated_at", id, input.Read, input.Saved, now, input.Read, input.Saved)
+	var tagsArgument any
+	if input.Tags != nil {
+		tagsArgument = string(raw(*input.Tags))
+	}
+	_, err := tx.Exec("INSERT INTO entry_state(owner_id,entry_id,is_read,is_saved,tags,updated_at) VALUES('local',?,COALESCE(?,0),COALESCE(?,0),COALESCE(?,'[]'),?) ON CONFLICT(owner_id,entry_id) DO UPDATE SET is_read=COALESCE(?,entry_state.is_read),is_saved=COALESCE(?,entry_state.is_saved),tags=COALESCE(?,entry_state.tags),updated_at=excluded.updated_at", id, input.Read, input.Saved, tagsArgument, now, input.Read, input.Saved, tagsArgument)
 	if err != nil {
 		return out, err
 	}
@@ -198,9 +233,6 @@ func (s *Store) SetEntryState(id string, input EntryStateInput) (EntryState, err
 		return out, err
 	}
 	if err = json.Unmarshal(tags, &out.Tags); err != nil {
-		return out, err
-	}
-	if err = tx.Commit(); err != nil {
 		return out, err
 	}
 	return out, nil
