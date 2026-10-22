@@ -1,0 +1,298 @@
+{
+  "reviewed_at_utc": "2026-10-22T03:16:02.565910+00:00",
+  "local_baseline_commit": "6db67f27a7b191e2eb84826d360f754af762fe34",
+  "method": "18 original README snapshots pinned to independently resolved commits, including8 new comparison projects and10 refreshed/renamed projects; feature claims are documentation evidence, not installed-product UX or full source audits. Local implementation checked separately. No application changes in this review.",
+  "projects_reviewed": 18,
+  "new_comparison_projects": 8,
+  "sources": [
+    {
+      "repository": "glanceapp/glance",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:55.962097+00:00",
+      "sha256": "8bd07cbba9ec198a2cca8be73454140edb4c99956c541e7e0b7b4618d7ef0c11",
+      "bytes": 14571,
+      "resolved_commit": "8958aa827275cf81c01f3d5afe7180354a200cc6",
+      "pinned_url": "https://raw.githubusercontent.com/glanceapp/glance/8958aa827275cf81c01f3d5afe7180354a200cc6/README.md",
+      "source_url": "https://raw.githubusercontent.com/glanceapp/glance/8958aa827275cf81c01f3d5afe7180354a200cc6/README.md",
+      "new_comparison_project": false,
+      "observation": "README lists YouTube, markets, Docker status and server stats; current fork legacy registry also implements these."
+    },
+    {
+      "repository": "gethomepage/homepage",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.100251+00:00",
+      "sha256": "324b4d0b303d6b37c201424690340c698f92393acee484fed1a9c2c680115f3f",
+      "bytes": 7693,
+      "resolved_commit": "44bf8c196232592049d99275f7c58718d167e9e4",
+      "pinned_url": "https://raw.githubusercontent.com/gethomepage/homepage/44bf8c196232592049d99275f7c58718d167e9e4/README.md",
+      "source_url": "https://raw.githubusercontent.com/gethomepage/homepage/44bf8c196232592049d99275f7c58718d167e9e4/README.md",
+      "new_comparison_project": false,
+      "observation": "Quick search, service bookmarks, over100 service integrations, Docker discovery and information widgets."
+    },
+    {
+      "repository": "homarr-labs/homarr",
+      "path": "docs/README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.404527+00:00",
+      "sha256": "11d3af3b57870d0a695dcd412059de82853d328167ac211b03ec0780647ec1d6",
+      "bytes": 31854,
+      "resolved_commit": "979c61b8a5dcce967e42955b8e55b0e5a7092c33",
+      "pinned_url": "https://raw.githubusercontent.com/homarr-labs/homarr/979c61b8a5dcce967e42955b8e55b0e5a7092c33/docs/README.md",
+      "source_url": "https://raw.githubusercontent.com/homarr-labs/homarr/979c61b8a5dcce967e42955b8e55b0e5a7092c33/docs/README.md",
+      "new_comparison_project": false,
+      "observation": "Search across integration data and Homarr data, extensive integrations, visual grids and icon picker."
+    },
+    {
+      "repository": "Lissy93/dashy",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.178147+00:00",
+      "sha256": "9f4c0c04cbbda3022ea9a0fbbe7fe9aa1bcab887d78d891389ad48f1a5b0bec1",
+      "bytes": 36175,
+      "resolved_commit": "a0005e8d6ea3dad611bc7c4daa1cd837dd338c79",
+      "pinned_url": "https://raw.githubusercontent.com/Lissy93/dashy/a0005e8d6ea3dad611bc7c4daa1cd837dd338c79/README.md",
+      "source_url": "https://raw.githubusercontent.com/Lissy93/dashy/a0005e8d6ea3dad611bc7c4daa1cd837dd338c79/README.md",
+      "new_comparison_project": false,
+      "observation": "Name/domain/tag search, utility widgets and service/host status indicators."
+    },
+    {
+      "repository": "miniflux/v2",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.135098+00:00",
+      "sha256": "2a18e492d96193f6bb1122bd493944e07987920a06005a48651c304e310a4a48",
+      "bytes": 8326,
+      "resolved_commit": "8de58f8b6fe11efb5b86024f64276e31b36f4572",
+      "pinned_url": "https://raw.githubusercontent.com/miniflux/v2/8de58f8b6fe11efb5b86024f64276e31b36f4572/README.md",
+      "source_url": "https://raw.githubusercontent.com/miniflux/v2/8de58f8b6fe11efb5b86024f64276e31b36f4572/README.md",
+      "new_comparison_project": false,
+      "observation": "Full text search, original-article Readability extraction, include/exclude regex and webhooks."
+    },
+    {
+      "repository": "FreshRSS/FreshRSS",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.353384+00:00",
+      "sha256": "ac426babae70bf2a0de20805ded57ebe4e6ad51bc1b27da419ddeea4d2952e52",
+      "bytes": 25558,
+      "resolved_commit": "7de3c981d49f5d56cf73af05abaa92712629b7aa",
+      "pinned_url": "https://raw.githubusercontent.com/FreshRSS/FreshRSS/7de3c981d49f5d56cf73af05abaa92712629b7aa/README.md",
+      "source_url": "https://raw.githubusercontent.com/FreshRSS/FreshRSS/7de3c981d49f5d56cf73af05abaa92712629b7aa/README.md",
+      "new_comparison_project": false,
+      "observation": "Dedicated feed aggregation and mobile ecosystem; README inbound push is source-to-reader delivery, not evidence of outbound user push alerts."
+    },
+    {
+      "repository": "RSSNext/Folo",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.241585+00:00",
+      "sha256": "5ce09e5def25d160041a495f34179a6747e960205d193562ae38dca4eaa51406",
+      "bytes": 15207,
+      "resolved_commit": "84692b51f18349b05554a0a6f6ed73e575d2ed79",
+      "pinned_url": "https://raw.githubusercontent.com/RSSNext/Folo/84692b51f18349b05554a0a6f6ed73e575d2ed79/README.md",
+      "source_url": "https://raw.githubusercontent.com/RSSNext/Folo/84692b51f18349b05554a0a6f6ed73e575d2ed79/README.md",
+      "new_comparison_project": false,
+      "observation": "Timeline digest, multiple content formats, user rules/actions, AI tasks and external knowledge-tool integration."
+    },
+    {
+      "repository": "karakeep-app/karakeep",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:56.718562+00:00",
+      "sha256": "5e99e0752f2f37e3f0733ffcb5f4278825f94c15ad0a292281dee070cc5b58de",
+      "bytes": 8093,
+      "resolved_commit": "5c72fa95807df2d7dd96f0c9ac52a536b5bf3cfc",
+      "pinned_url": "https://raw.githubusercontent.com/karakeep-app/karakeep/5c72fa95807df2d7dd96f0c9ac52a536b5bf3cfc/README.md",
+      "source_url": "https://raw.githubusercontent.com/karakeep-app/karakeep/5c72fa95807df2d7dd96f0c9ac52a536b5bf3cfc/README.md",
+      "new_comparison_project": false,
+      "observation": "Automatic metadata, lists, full-text/semantic search, extensions, mobile offline reading, highlights and archival; AI is a separate dependency."
+    },
+    {
+      "repository": "linkwarden/linkwarden",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.315708+00:00",
+      "sha256": "2813dd16022b0e23f9f2f19cbf216be22b201cb9a089cd3d38184dc7a62c7939",
+      "bytes": 9266,
+      "resolved_commit": "952ac4540657cae3a67c3ca59433899d2fda8374",
+      "pinned_url": "https://raw.githubusercontent.com/linkwarden/linkwarden/952ac4540657cae3a67c3ca59433899d2fda8374/README.md",
+      "source_url": "https://raw.githubusercontent.com/linkwarden/linkwarden/952ac4540657cae3a67c3ca59433899d2fda8374/README.md",
+      "new_comparison_project": false,
+      "observation": "Browser extension/iOS shortcut, full-text search, highlights, preservation and cross-tool capture."
+    },
+    {
+      "repository": "revenz/Fenrus",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.228481+00:00",
+      "sha256": "bdbfb29579e43c0afab3aadab55568301313f29d970c93a017cc768543b2bb04",
+      "bytes": 6712,
+      "resolved_commit": "fc8f57ac9d5643d16f7d8427f8341397e645f501",
+      "pinned_url": "https://raw.githubusercontent.com/revenz/Fenrus/fc8f57ac9d5643d16f7d8427f8341397e645f501/README.md",
+      "source_url": "https://raw.githubusercontent.com/revenz/Fenrus/fc8f57ac9d5643d16f7d8427f8341397e645f501/README.md",
+      "new_comparison_project": true,
+      "observation": "Grouped internal/external links, Smart Apps and shortcut-selectable search engines."
+    },
+    {
+      "repository": "sissbruecker/linkding",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.304224+00:00",
+      "sha256": "ee0d7ad2b5508071b9f36cde500286a90dee41f3251197ff6c81dcfd499c3e8c",
+      "bytes": 4561,
+      "resolved_commit": "27b7303baf41bb28babc610ac8eaa486e1ddfab5",
+      "pinned_url": "https://raw.githubusercontent.com/sissbruecker/linkding/27b7303baf41bb28babc610ac8eaa486e1ddfab5/README.md",
+      "source_url": "https://raw.githubusercontent.com/sissbruecker/linkding/27b7303baf41bb28babc610ac8eaa486e1ddfab5/README.md",
+      "new_comparison_project": true,
+      "observation": "Automatic link title/description/icons, tagged read-later bookmarks, HTML import/export, bookmarklet and extensions."
+    },
+    {
+      "repository": "wallabag/wallabag",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.474042+00:00",
+      "sha256": "0dd89f0f2c9e197ae8ef1b5d9f650b3f11384eb951c1d9be38c724ffdc4df4f8",
+      "bytes": 3391,
+      "resolved_commit": "95904ee01c18828ac467156f4aa4ac70275bb7be",
+      "pinned_url": "https://raw.githubusercontent.com/wallabag/wallabag/95904ee01c18828ac467156f4aa4ac70275bb7be/README.md",
+      "source_url": "https://raw.githubusercontent.com/wallabag/wallabag/95904ee01c18828ac467156f4aa4ac70275bb7be/README.md",
+      "new_comparison_project": true,
+      "observation": "Explicit article extraction for later reading plus browser/mobile clients."
+    },
+    {
+      "repository": "go-vikunja/vikunja",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.771951+00:00",
+      "sha256": "30ae2bf5983bce8c0c1f313e02028fe5bae967afb82fc21d8adb4a912de1559e",
+      "bytes": 3150,
+      "resolved_commit": "bc13d2095eccfe1d42904bc5606ea3abbdb84526",
+      "pinned_url": "https://raw.githubusercontent.com/go-vikunja/vikunja/bc13d2095eccfe1d42904bc5606ea3abbdb84526/README.md",
+      "source_url": "https://raw.githubusercontent.com/go-vikunja/vikunja/bc13d2095eccfe1d42904bc5606ea3abbdb84526/README.md",
+      "new_comparison_project": true,
+      "observation": "Task-manager positioning only verified here; detailed feature list is linked off-site and was not used as CalDAV/reminder evidence."
+    },
+    {
+      "repository": "johannesjo/super-productivity",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.997910+00:00",
+      "sha256": "f15b319ab8de76ca8e9ce5d1b72cc2334e0cab1cb3515da7048f0ba6e8f9ad1e",
+      "bytes": 14839,
+      "resolved_commit": "f132ebf5a3abf796b15daff068cd976151356f44",
+      "pinned_url": "https://raw.githubusercontent.com/johannesjo/super-productivity/f132ebf5a3abf796b15daff068cd976151356f44/README.md",
+      "source_url": "https://raw.githubusercontent.com/johannesjo/super-productivity/f132ebf5a3abf796b15daff068cd976151356f44/README.md",
+      "new_comparison_project": true,
+      "observation": "Tasks, daily schedule alongside calendars, timeboxing, external issue integrations and CalDAV."
+    },
+    {
+      "repository": "plankanban/planka",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:58.065904+00:00",
+      "sha256": "b28c061b21698b9016c846257308e151be31a2444fc0846d6b231c41b8e30df6",
+      "bytes": 6562,
+      "resolved_commit": "627701dda3459fa25830b0fd5bb2f5668d033284",
+      "pinned_url": "https://raw.githubusercontent.com/plankanban/planka/627701dda3459fa25830b0fd5bb2f5668d033284/README.md",
+      "source_url": "https://raw.githubusercontent.com/plankanban/planka/627701dda3459fa25830b0fd5bb2f5668d033284/README.md",
+      "new_comparison_project": true,
+      "observation": "Community task boards/due dates/notifications; README distinguishes paid Pro calendar/timeline/recurring-card features."
+    },
+    {
+      "repository": "TriliumNext/Trilium",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:57.909794+00:00",
+      "sha256": "087906667d44cbca6a47a4e198713c7b068c1766c8fe9a80daa9b4e7480eae95",
+      "bytes": 16254,
+      "resolved_commit": "e0fd110420eb631107621ebdfa383b5c25e91722",
+      "pinned_url": "https://raw.githubusercontent.com/TriliumNext/Trilium/e0fd110420eb631107621ebdfa383b5c25e91722/README.md",
+      "source_url": "https://raw.githubusercontent.com/TriliumNext/Trilium/e0fd110420eb631107621ebdfa383b5c25e91722/README.md",
+      "new_comparison_project": true,
+      "observation": "Full-text notes, note revisions, hierarchy/backlinks, mobile frontend and REST API; third-party offline clients distinguished."
+    },
+    {
+      "repository": "nicolargo/glances",
+      "path": "README.rst",
+      "retrieved_at_utc": "2026-10-22T03:13:58.123007+00:00",
+      "sha256": "1b958e101d105eee5d29324f73106bf97c9307903a05dcac341ed2da84cbe86c",
+      "bytes": 24115,
+      "resolved_commit": "acee335ad65ae1fddf1f3bea9c2cac16256e0da2",
+      "pinned_url": "https://raw.githubusercontent.com/nicolargo/glances/acee335ad65ae1fddf1f3bea9c2cac16256e0da2/README.rst",
+      "source_url": "https://raw.githubusercontent.com/nicolargo/glances/acee335ad65ae1fddf1f3bea9c2cac16256e0da2/README.rst",
+      "new_comparison_project": true,
+      "observation": "Cross-platform host CPU/memory/disk/network monitoring and web/client-server modes; not the glanceapp project."
+    },
+    {
+      "repository": "usememos/memos",
+      "path": "README.md",
+      "retrieved_at_utc": "2026-10-22T03:13:58.713023+00:00",
+      "sha256": "441f879a482850273554612eb656bc10d25e85d565bb8b34fc1d4349cae56811",
+      "bytes": 6421,
+      "resolved_commit": "008dded234ff5babc285f2f3166921813e0cafb9",
+      "pinned_url": "https://raw.githubusercontent.com/usememos/memos/008dded234ff5babc285f2f3166921813e0cafb9/README.md",
+      "source_url": "https://raw.githubusercontent.com/usememos/memos/008dded234ff5babc285f2f3166921813e0cafb9/README.md",
+      "new_comparison_project": false,
+      "observation": "Focused personal note capture, ownership and Markdown workflow; complete offline behavior not inferred from PWA branding."
+    }
+  ],
+  "failed_paths": [
+    {
+      "repository": "glanceapp/glance",
+      "path": "docs/widgets.md",
+      "url": "https://raw.githubusercontent.com/glanceapp/glance/HEAD/docs/widgets.md",
+      "status": "unavailable",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "repository": "homarr-labs/homarr",
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/homarr-labs/homarr/HEAD/README.md",
+      "status": "unavailable",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "repository": "nicolargo/glances",
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/nicolargo/glances/HEAD/README.md",
+      "status": "unavailable",
+      "error": "HTTP Error 404: Not Found"
+    }
+  ],
+  "local_source_checks": [
+    {
+      "path": "internal/glance/widget.go",
+      "sha256": "8b0654f7774c2d917a313091d44e7fe39a5cf4c5f16a596f14e5f19469a3a9ea"
+    },
+    {
+      "path": "internal/dashboard/catalog.go",
+      "sha256": "770fe147ffa9a6a15c9defcea5cf64428f288d254ffedcd0499d48a985568ea1"
+    },
+    {
+      "path": "internal/dashboard/provider.go",
+      "sha256": "d8050d8dfcaaddb451cd7a02cb43687aef2f8fdc36bb428823da4c2f6b267637"
+    },
+    {
+      "path": "internal/dashboard/model.go",
+      "sha256": "4688b51f48e03eb9ce959d5978841a967e9b277eca6289d72491e15630bf1507"
+    },
+    {
+      "path": "internal/dashboard/entry_ingestion.go",
+      "sha256": "5d95089b5c748a19c51d486f134a3c1862e3fdfdcdbf09394eee12010ee6e311"
+    },
+    {
+      "path": "internal/dashboard/brief.go",
+      "sha256": "559eaf54846ee311c3803abcb8bc1384ef537b57053db0522fc21ab374a8efc9"
+    },
+    {
+      "path": "internal/dashboard/search.go",
+      "sha256": "57f100fa740a6a7553a5b9abb9cc82293153f9c3661c3e00698708fa4d231468"
+    },
+    {
+      "path": "web/src/App.tsx",
+      "sha256": "cfb91a0c6ffdabadfa0a744b63002f10d3b37a76bd7e5756677960f90bafbdc2"
+    },
+    {
+      "path": "web/src/editor/quickCapture.ts",
+      "sha256": "b096ee025672dcc09e43e0f1b87646d1efc5e1cdea8221be83ea420935b01823"
+    },
+    {
+      "path": "web/src/workspace/CommandPalette.tsx",
+      "sha256": "11fc76f803865e725d2acb603abf46d7fe2daaf5de15d22dc079db9b2a9544b9"
+    },
+    {
+      "path": "web/src/workspace/SafeMarkdown.tsx",
+      "sha256": "3bc14c709114605b5ecf19268659b38a52998ccd365685fcabae204682bc0da9"
+    },
+    {
+      "path": "web/src/workspace/PWAStatus.tsx",
+      "sha256": "1ea0fed4df6b246968502a665c93cb5a85dfc7fda4163999793eba936f306e23"
+    }
+  ]
+}
