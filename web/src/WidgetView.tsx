@@ -1,3 +1,4 @@
+import SafeMarkdown from "./workspace/SafeMarkdown";
 import type { components } from "./generated/api";
 import { useState } from "react";
 import {
@@ -129,7 +130,9 @@ const renderers: Record<
   note: ({ widget, snapshot, now }) => {
     return (
       <div className="note-view">
-        <p>{widget.config.body || "편집에서 첫 메모를 남겨보세요."}</p>
+        <SafeMarkdown
+          body={widget.config.body || "편집에서 첫 메모를 남겨보세요."}
+        />
         <span className="note-mark" aria-hidden="true">
           ✳
         </span>

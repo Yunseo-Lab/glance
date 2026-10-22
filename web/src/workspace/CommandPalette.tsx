@@ -23,6 +23,7 @@ export default function CommandPalette({
         { page: "board", title: "대시보드로 이동" },
         { page: "sources", title: "데이터 소스 관리" },
         { page: "inbox", title: "모아 읽기" },
+        { page: "brief", title: "하루 브리핑" },
         { page: "settings", title: "설정 열기" },
       ] as const
     ).map((item) => ({

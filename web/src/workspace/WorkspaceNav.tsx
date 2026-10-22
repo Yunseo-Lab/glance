@@ -1,4 +1,10 @@
-import { Database, Inbox, LayoutDashboard, Settings } from "lucide-react";
+import {
+  CalendarDays,
+  Database,
+  Inbox,
+  LayoutDashboard,
+  Settings,
+} from "lucide-react";
 import type { Board } from "../types";
 import type { WorkspacePage, WorkspaceRoute } from "./navigation";
 export default function WorkspaceNav({
@@ -42,6 +48,7 @@ export default function WorkspaceNav({
           { page: "board", title: "대시보드", Icon: LayoutDashboard },
           { page: "sources", title: "데이터 소스", Icon: Database },
           { page: "inbox", title: "모아 읽기", Icon: Inbox },
+          { page: "brief", title: "브리핑", Icon: CalendarDays },
           { page: "settings", title: "설정", Icon: Settings },
         ] as const
       ).map(({ page, title, Icon }) => (

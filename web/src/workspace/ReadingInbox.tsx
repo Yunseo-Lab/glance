@@ -1,3 +1,4 @@
+import EntryReader from "./EntryReader";
 import { useEffect, useState } from "react";
 import {
   Bookmark,
@@ -27,6 +28,8 @@ export default function ReadingInbox({
   board: Board;
   snapshots: Record<string, Snapshot>;
 }) {
+  const [reader, setReader] = useState<Entry>(),
+    [activeID, setActiveID] = useState("");
   const [searchInput, setSearchInput] = useState(""),
     [searchQuery, setSearchQuery] = useState(""),
     [composing, setComposing] = useState(false);
@@ -71,6 +74,9 @@ export default function ReadingInbox({
     setHistory([]);
   }
   function update(id: string, changes: Partial<Entry>) {
+    setReader((current) =>
+      current?.id === id ? { ...current, ...changes } : current,
+    );
     queryClient.setQueriesData<Page>({ predicate: isEntryQuery }, (current) =>
       current
         ? {
@@ -144,6 +150,66 @@ export default function ReadingInbox({
         (!tag || item.tags.includes(tag)),
     ) || [];
   const selectedItems = items.filter((item) => selected.has(item.id));
+  const readerIndex = items.findIndex((item) => item.id === reader?.id);
+  function closeReader() {
+    setReader(undefined);
+    requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLButtonElement>(
+        `[data-entry-id="${activeID}"] .entry-title-button`,
+      );
+      if (target) target.focus();
+      else
+        document
+          .querySelector<HTMLInputElement>('[aria-label="수집한 소식 검색"]')
+          ?.focus();
+    });
+  }
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (
+        reader ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.keyCode === 229 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        document.querySelector("dialog[open]") ||
+        target.closest("input,textarea,select,[contenteditable=true]")
+      )
+        return;
+      if (event.key === "/") {
+        event.preventDefault();
+        document
+          .querySelector<HTMLInputElement>('[aria-label="수집한 소식 검색"]')
+          ?.focus();
+        return;
+      }
+      const index = items.findIndex((item) => item.id === activeID);
+      if (event.key === "j" || event.key === "k") {
+        event.preventDefault();
+        const next =
+          event.key === "j"
+            ? Math.min(index + 1, items.length - 1)
+            : Math.max(index - 1, 0);
+        if (items[next]) {
+          setActiveID(items[next].id);
+          document
+            .querySelector<HTMLButtonElement>(
+              `[data-entry-id="${items[next].id}"] .entry-title-button`,
+            )
+            ?.focus();
+        }
+      }
+      if (event.key === "o" && items[index]) {
+        event.preventDefault();
+        setReader(items[index]);
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, [reader, items, activeID]);
   return (
     <>
       <section className="page-heading">
@@ -354,12 +420,25 @@ export default function ReadingInbox({
                 )}
               </small>
               <h2>
+                <button
+                  className="entry-title-button"
+                  aria-label={`${item.title} 읽기`}
+                  onFocus={() => setActiveID(item.id)}
+                  onClick={() => {
+                    setActiveID(item.id);
+                    setReader(item);
+                  }}
+                >
+                  {item.title}
+                </button>
                 <a
+                  className="entry-original-link"
                   href={safeExternalURL(item.url)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`${item.title} 원문 열기`}
                 >
-                  {item.title} <ExternalLink size={13} />
+                  <ExternalLink size={14} />
                 </a>
               </h2>
               {item.excerpt && <p>{item.excerpt}</p>}
@@ -455,6 +534,32 @@ export default function ReadingInbox({
           다음 항목
         </button>
       </div>
+      {reader && (
+        <EntryReader
+          item={reader}
+          busy={busy.has(reader.id)}
+          onClose={closeReader}
+          onPrevious={
+            readerIndex > 0
+              ? () => {
+                  setActiveID(items[readerIndex - 1].id);
+                  setReader(items[readerIndex - 1]);
+                }
+              : undefined
+          }
+          onNext={
+            readerIndex < items.length - 1
+              ? () => {
+                  const item = items[Math.max(0, readerIndex + 1)];
+                  setActiveID(item.id);
+                  setReader(item);
+                }
+              : undefined
+          }
+          onRead={() => void mutateMany([reader], { read: !reader.isRead })}
+          onSave={() => void mutateMany([reader], { saved: !reader.isSaved })}
+        />
+      )}
       {tagEditor && (
         <EntryTagEditor
           initial={tagEditor.length === 1 ? tagEditor[0].tags : []}

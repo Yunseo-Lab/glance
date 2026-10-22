@@ -1,0 +1,65 @@
+{
+  "seconds": 60.002676553,
+  "clients": 8,
+  "sources": 128,
+  "entries": 10000,
+  "requests": 2392,
+  "failures": 0,
+  "expected_refresh_429": 229,
+  "provider_fetches": 150,
+  "duplicate_fetches": 0,
+  "latency": {
+    "board": {
+      "count": 239,
+      "p50_ms": 1.345,
+      "p95_ms": 5.712,
+      "max_ms": 12.101
+    },
+    "brief": {
+      "count": 240,
+      "p50_ms": 59.129,
+      "p95_ms": 72.332,
+      "max_ms": 84.91
+    },
+    "diagnostics": {
+      "count": 240,
+      "p50_ms": 15.315,
+      "p95_ms": 24.281,
+      "max_ms": 31.096
+    },
+    "refresh": {
+      "count": 239,
+      "p50_ms": 1.93,
+      "p95_ms": 7.214,
+      "max_ms": 19.92
+    },
+    "search": {
+      "count": 956,
+      "p50_ms": 21.657,
+      "p95_ms": 30.946,
+      "max_ms": 52.223
+    },
+    "snapshots": {
+      "count": 239,
+      "p50_ms": 5.509,
+      "p95_ms": 13.42,
+      "max_ms": 22.734
+    },
+    "state": {
+      "count": 239,
+      "p50_ms": 1.616,
+      "p95_ms": 7.293,
+      "max_ms": 12.088
+    }
+  },
+  "memory": [
+    {
+      "second": 60,
+      "rss_bytes": 55525376,
+      "heap_bytes": 1389944,
+      "goroutines": 5
+    }
+  ],
+  "restart_restore": true,
+  "scope": "60-second preflight only; not the required 60-minute result"
+}

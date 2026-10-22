@@ -40,6 +40,7 @@ type EntryStateInput struct {
 	Tags  *[]string `json:"tags,omitempty"`
 }
 type EntryFilter struct {
+	From, Until                                   *time.Time
 	Status, BoardID, SourceID, Tag, Query, Cursor string
 	Limit                                         int
 }
@@ -103,6 +104,14 @@ func (s *Store) Entries(filter EntryFilter) (EntryPage, error) {
 		args = append(args, arguments...)
 	}
 
+	if filter.From != nil {
+		where += " AND e.sort_at>=?"
+		args = append(args, filter.From.UnixNano())
+	}
+	if filter.Until != nil {
+		where += " AND e.sort_at<?"
+		args = append(args, filter.Until.UnixNano())
+	}
 	from := " FROM entries e LEFT JOIN entry_state st ON st.entry_id=e.id AND st.owner_id='local' WHERE "
 	if err := s.db.QueryRow("SELECT count(*)"+from+where, args...).Scan(&page.Total); err != nil {
 		return page, err

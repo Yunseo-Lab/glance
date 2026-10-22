@@ -1,3 +1,6 @@
+import DailyBrief from "./workspace/DailyBrief";
+import QuickCapture from "./workspace/QuickCapture";
+import { captureToBoard } from "./editor/quickCapture";
 import { appendFeeds } from "./editor/feedImport";
 import BoardManager from "./workspace/BoardManager";
 import { boardNotifications, announceBoard } from "./editor/boardNotifications";
@@ -104,6 +107,7 @@ export default function App() {
   const importInput = useRef<HTMLInputElement>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [boardsOpen, setBoardsOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
 
   const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
   const { route, navigate } = useWorkspaceNavigation(() => {
@@ -303,10 +307,10 @@ export default function App() {
     document.documentElement.dataset.theme = draft?.theme || "light";
   }, [draft?.theme]);
 
-  async function persist(board: Board) {
+  async function persist(board: Board): Promise<boolean> {
     if (!board.title.trim()) {
       setError("대시보드 이름을 입력하세요.");
-      return;
+      return false;
     }
     setSaving(true);
     setError("");
@@ -321,9 +325,11 @@ export default function App() {
       dispatchEditor({ type: "load", board: result });
       announceBoard(result.id, result.revision);
       setNotice("변경 사항을 저장했습니다.");
+      return true;
     } catch (err) {
       setError((err as Error).message);
       setConflict(err instanceof ApiError && err.status === 409);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -534,6 +540,7 @@ export default function App() {
                     {
                       sources: "데이터 소스",
                       inbox: "모아 읽기",
+                      brief: "하루 브리핑",
                       settings: "설정",
                       "not-found": "찾을 수 없음",
                     } as const
@@ -567,6 +574,14 @@ export default function App() {
                 </button>
               )}
             </label>
+            <button
+              className="icon-button"
+              aria-label="빠른 기록"
+              disabled={saving}
+              onClick={() => setQuickOpen(true)}
+            >
+              <NotebookPen size={18} />
+            </button>
             <button
               className="icon-button"
               aria-label="보드 관리"
@@ -652,6 +667,9 @@ export default function App() {
           )}
           {route.page === "inbox" && (
             <ReadingPanel board={saved} snapshots={snapshots} />
+          )}
+          {route.page === "brief" && (
+            <DailyBrief onRead={() => navigate("inbox")} />
           )}
           {route.page === "settings" && <SettingsPanel />}
           {route.page === "not-found" && (
@@ -1125,6 +1143,32 @@ export default function App() {
           </div>
         </main>
       </div>
+      {quickOpen && (
+        <QuickCapture
+          staged={editing}
+          onClose={() => setQuickOpen(false)}
+          onSave={async (input) => {
+            const next = captureToBoard(draft, input);
+            if (editing) {
+              dispatchEditor({ type: "replace", board: next });
+              setNotice(
+                "빠른 기록을 초안에 추가했습니다. 대시보드 저장을 눌러 보관하세요.",
+              );
+              navigate("board");
+              setCategory("all");
+              setQuery("");
+              return true;
+            }
+            const success = await persist(next);
+            if (success) {
+              navigate("board");
+              setCategory("all");
+              setQuery("");
+            }
+            return success;
+          }}
+        />
+      )}
       {boardsOpen && (
         <BoardManager
           boards={boards}

@@ -1231,11 +1231,14 @@
       "depends_on": [
         "F061"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "f062-e2e.log: 4 passed",
+        "web/src/workspace/EntryReader.tsx"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-22T00:52:42+00:00",
-      "progress_note": "저장한 발췌를 읽는 reader, 원문 링크·발행 출처·j/k·읽음/저장 단축키를 추가한다. 원문/이미지를 자동 요청하지 않고 IME·입력란·다른 dialog에서는 단축키를 차단한다.",
+      "updated_at": "2026-10-22T00:58:37+00:00",
+      "progress_note": "발췌 reader·원문 출처/시각·명시적 외부 링크와 j/k/m/s/Escape 탐색을 구현했다. 입력/IME/modal 예외와 닫기 후 초점 복귀, 이미지/원문 자동 요청 없음, 브라우저 상태 변경을 검증했다.",
       "started_at": "2026-10-22T00:52:42+00:00"
     },
     {
@@ -1247,9 +1250,16 @@
       "depends_on": [
         "F062"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f063-capture-rerun.log: 3 passed",
+        "f063-e2e.log: original 10 cycles passed; bookmark URL assertion normalized in rerun",
+        "web/e2e/capture.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:01:19+00:00",
+      "progress_note": "빠른 기록으로 메모/즐겨찾기를 바로 저장하고 편집 중에는 초안에만 추가한다. 중복·용량·주소 검증과 제한 Markdown의 HTML/이미지 비실행·선형 inline 파싱/토큰 한도, 저장/재열기를 검증했다.",
+      "started_at": "2026-10-22T00:58:37+00:00"
     },
     {
       "id": "F064",
@@ -1260,9 +1270,16 @@
       "depends_on": [
         "F063"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f064-go-race.log: PASS",
+        "f064-e2e.log: 4 passed",
+        "internal/dashboard/brief_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:06:58+00:00",
+      "progress_note": "단일 DB 조회로 날짜/시간대별 항목·읽음/저장 개수·원문 인용을 일관되게 정리한다. 같은 데이터는 같은 fingerprint를 반환하며 외부 모델을 호출하지 않는다. DST 23/25시간·자정 전환·건너뛴 날짜, owner 격리와 UI 출처/시간대 검증 통과.",
+      "started_at": "2026-10-22T01:01:19+00:00"
     },
     {
       "id": "F065",
@@ -1274,9 +1291,12 @@
         "F048",
         "F064"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:06:58+00:00",
+      "progress_note": "axe serious/critical·키보드/초점·접근성 트리/스크린리더·reduced motion을 확인하고 발견된 대비/이름/레이아웃 문제를 수정한다.",
+      "started_at": "2026-10-22T01:06:58+00:00"
     },
     {
       "id": "F066",

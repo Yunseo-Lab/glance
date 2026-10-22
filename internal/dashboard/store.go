@@ -46,12 +46,15 @@ func OpenStore(path string) (*Store, error) {
 	if err = f.Close(); err != nil {
 		return nil, err
 	}
-	u := url.URL{Scheme: "file", Path: abs, RawQuery: "_busy_timeout=5000&_foreign_keys=on"}
+	u := url.URL{Scheme: "file", Path: abs, RawQuery: "_busy_timeout=5000&_foreign_keys=on&_txlock=immediate"}
 	db, err := sql.Open("glance_sqlite3", u.String())
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1)
+	// WAL permits bounded parallel readers; immediate mutation transactions avoid
+	// deferred read-to-write upgrades failing under concurrent owner actions.
+	db.SetMaxOpenConns(8)
+	db.SetMaxIdleConns(8)
 	if err := requireFTS5(db); err != nil {
 		db.Close()
 		return nil, err

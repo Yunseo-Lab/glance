@@ -33,6 +33,15 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("GET /api/v1/brief", func(w http.ResponseWriter, r *http.Request) {
+		brief, err := service.store.DailyBrief(r.URL.Query().Get("date"), r.URL.Query().Get("timezone"))
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		jsonResponse(w, 200, brief)
+	})
+
 	mux.HandleFunc("GET /api/v1/capabilities", func(w http.ResponseWriter, r *http.Request) {
 		var version string
 		if err := service.store.db.QueryRow("SELECT sqlite_version()").Scan(&version); err != nil {

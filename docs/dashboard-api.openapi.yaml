@@ -13,6 +13,28 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/brief:
+    get:
+      operationId: getDailyBrief
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: timezone
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deterministic owner-local daily brief with source citations; calls no external model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyBrief'
+        '400':
+          description: Invalid civil date or timezone
   /api/v1/capabilities:
     get:
       operationId: getCapabilities
@@ -852,6 +874,33 @@ components:
         timezone:
           type: string
 
+    DailyBrief:
+      type: object
+      required: [date, timezone, total, unread, saved, items, truncated, fingerprint]
+      properties:
+        date:
+          type: string
+          format: date
+        timezone:
+          type: string
+        total:
+          type: integer
+        unread:
+          type: integer
+        saved:
+          type: integer
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/Entry'
+        truncated:
+          type: boolean
+        asOf:
+          type: string
+          format: date-time
+        fingerprint:
+          type: string
     EntryTag:
       type: object
       required: [tag, count]

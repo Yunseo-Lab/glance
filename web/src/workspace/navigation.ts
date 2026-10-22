@@ -3,6 +3,7 @@ export type WorkspacePage =
   | "board"
   | "sources"
   | "inbox"
+  | "brief"
   | "settings"
   | "not-found";
 export interface WorkspaceRoute {
@@ -15,7 +16,7 @@ function parseRoute(hash: string, boardID = "home"): WorkspaceRoute {
   const board = /^#\/boards\/([a-zA-Z0-9_-]{1,64})$/.exec(hash);
   if (board) return { page: "board", boardID: board[1] };
   const [page, query] = hash.split("?");
-  if (["#/sources", "#/inbox", "#/settings"].includes(page)) {
+  if (["#/sources", "#/inbox", "#/settings", "#/brief"].includes(page)) {
     const context = new URLSearchParams(query).get("board");
     if (context && /^[a-zA-Z0-9_-]{1,64}$/.test(context)) boardID = context;
     return { page: page.slice(2) as WorkspacePage, boardID };
