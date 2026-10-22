@@ -30,27 +30,65 @@ function routeHash(route: WorkspaceRoute) {
 export function useWorkspaceNavigation(canChangeBoard: () => boolean) {
   const [route, setRoute] = useState(() => parseRoute(window.location.hash));
   const current = useRef(route),
-    guard = useRef(canChangeBoard);
+    guard = useRef(canChangeBoard),
+    index = useRef<number>(history.state?.glanceIndex ?? 0),
+    restoring = useRef(false);
   guard.current = canChangeBoard;
+  function apply(next: WorkspaceRoute) {
+    current.current = next;
+    setRoute(next);
+    requestAnimationFrame(() =>
+      document.getElementById("main")?.focus({ preventScroll: true }),
+    );
+  }
   useEffect(() => {
+    history.replaceState(
+      { ...history.state, glanceIndex: index.current },
+      "",
+      window.location.href,
+    );
     const change = () => {
       if (window.location.hash === "#main") return;
-      const next = parseRoute(window.location.hash, current.current.boardID);
-      if (next.boardID !== current.current.boardID && !guard.current()) {
-        history.replaceState(null, "", routeHash(current.current));
+      if (restoring.current) {
+        restoring.current = false;
         return;
       }
-      current.current = next;
-      setRoute(next);
-      requestAnimationFrame(() =>
-        document.getElementById("main")?.focus({ preventScroll: true }),
+      const next = parseRoute(window.location.hash, current.current.boardID),
+        target = history.state?.glanceIndex;
+      if (next.boardID !== current.current.boardID && !guard.current()) {
+        if (typeof target === "number" && target !== index.current) {
+          restoring.current = true;
+          history.go(index.current - target);
+        } else
+          history.replaceState(
+            { ...history.state, glanceIndex: index.current },
+            "",
+            routeHash(current.current),
+          );
+        return;
+      }
+      index.current = typeof target === "number" ? target : index.current + 1;
+      history.replaceState(
+        { ...history.state, glanceIndex: index.current },
+        "",
+        window.location.href,
       );
+      apply(next);
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
   const navigate = (page: WorkspacePage, boardID = current.current.boardID) => {
-    window.location.hash = routeHash({ page, boardID });
+    const next = { page, boardID };
+    if (next.boardID !== current.current.boardID && !guard.current()) return;
+    if (routeHash(next) === routeHash(current.current)) return;
+    index.current++;
+    history.pushState(
+      { ...history.state, glanceIndex: index.current },
+      "",
+      routeHash(next),
+    );
+    apply(next);
   };
   return { route, navigate };
 }

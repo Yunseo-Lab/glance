@@ -1,0 +1,54 @@
+{
+  "versions": {
+    "react": "19.3.1",
+    "dnd": "6.3.1",
+    "sortable": "10.0.0",
+    "gridstack": "14.0.0"
+  },
+  "engines": {
+    "dnd": {
+      "initial": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "keyboard": true,
+      "touch": true,
+      "domOrder": [
+        "beta",
+        "gamma",
+        "alpha"
+      ],
+      "positions": [
+        null,
+        null,
+        null
+      ],
+      "pageErrors": [],
+      "jsGzip": 82760,
+      "cssGzip": 0
+    },
+    "gridstack": {
+      "initial": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "keyboard": false,
+      "touch": false,
+      "domOrder": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "positions": [
+        "0",
+        "1",
+        "2"
+      ],
+      "pageErrors": [],
+      "jsGzip": 93446,
+      "cssGzip": 1426
+    }
+  }
+}

@@ -49,6 +49,11 @@ export async function request<T>(
       response.status,
       Number(response.headers.get("Retry-After")) || undefined,
     );
-  if(options?.method && !["GET","HEAD"].includes(options.method.toUpperCase()) && typeof window!=="undefined") window.dispatchEvent(new Event("glance:mutated"));
+  if (
+    options?.method &&
+    !["GET", "HEAD"].includes(options.method.toUpperCase()) &&
+    typeof window !== "undefined"
+  )
+    window.dispatchEvent(new Event("glance:mutated"));
   return body as T;
 }

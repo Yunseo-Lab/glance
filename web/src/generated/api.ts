@@ -500,6 +500,10 @@ export interface components {
         FeedData: {
             title: string;
             items: {
+                /** @description Stable source-scoped entry identity; absent in legacy cached snapshots */
+                id?: string;
+                /** @description Plain text only */
+                excerpt?: string;
                 title: string;
                 /** Format: uri */
                 url: string;

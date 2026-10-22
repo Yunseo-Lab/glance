@@ -10,8 +10,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { components } from "../generated/api";
-import { ApiError, request, type Board, type FeedData, type Snapshot } from "../types";
-import {safeExternalURL} from "../links";
+import {
+  ApiError,
+  request,
+  type Board,
+  type FeedData,
+  type Snapshot,
+} from "../types";
+import { safeExternalURL } from "../links";
 import ConnectionManager from "./ConnectionManager";
 import { useResource } from "./useResource";
 type SourceStatus = components["schemas"]["SourceStatus"];
@@ -36,17 +42,49 @@ function PanelHeading({
     </section>
   );
 }
-export function SourcePanel({ boards,onNavigate,onAddWidget }: { boards: Board[];onNavigate:(id:string)=>void;onAddWidget:()=>void }) {
+export function SourcePanel({
+  boards,
+  onNavigate,
+  onAddWidget,
+}: {
+  boards: Board[];
+  onNavigate: (id: string) => void;
+  onAddWidget: () => void;
+}) {
   const { data, error, reload } = useResource<SourceStatus[]>(
     "/api/v1/sources",
     15000,
   );
   const [actionError, setActionError] = useState(""),
     [busy, setBusy] = useState("");
-  const [cooldowns,setCooldowns]=useState<Record<string,number>>({});
-  async function refresh(status:SourceStatus){
-    setBusy(status.source.id);setActionError("");
-    try{const result=await request<{nextAllowedAt:string}>(`/api/v1/sources/${status.source.id}/refresh`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});setCooldowns(current=>({...current,[status.source.id]:Date.parse(result.nextAllowedAt)}));reload()}catch(err){if(err instanceof ApiError&&err.status===429)setCooldowns(current=>({...current,[status.source.id]:Date.now()+(err.retryAfter||30)*1000}));setActionError((err as Error).message)}finally{setBusy("")}
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
+  async function refresh(status: SourceStatus) {
+    setBusy(status.source.id);
+    setActionError("");
+    try {
+      const result = await request<{ nextAllowedAt: string }>(
+        `/api/v1/sources/${status.source.id}/refresh`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        },
+      );
+      setCooldowns((current) => ({
+        ...current,
+        [status.source.id]: Date.parse(result.nextAllowedAt),
+      }));
+      reload();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429)
+        setCooldowns((current) => ({
+          ...current,
+          [status.source.id]: Date.now() + (err.retryAfter || 30) * 1000,
+        }));
+      setActionError((err as Error).message);
+    } finally {
+      setBusy("");
+    }
   }
   async function pause(status: SourceStatus) {
     setBusy(status.source.id);
@@ -85,8 +123,13 @@ export function SourcePanel({ boards,onNavigate,onAddWidget }: { boards: Board[]
           있어요.
         </p>
       )}
-      <ConnectionManager onChanged={reload}/>
-      <div className="section-heading"><h2>정보를 가져오는 소스</h2><button className="button secondary" onClick={onAddWidget}>소식 위젯 추가</button></div>
+      <ConnectionManager onChanged={reload} />
+      <div className="section-heading">
+        <h2>정보를 가져오는 소스</h2>
+        <button className="button secondary" onClick={onAddWidget}>
+          소식 위젯 추가
+        </button>
+      </div>
       <div className="resource-list">
         {data?.map((status) => {
           const source = status.source;
@@ -112,8 +155,22 @@ export function SourcePanel({ boards,onNavigate,onAddWidget }: { boards: Board[]
                           ? "최신 정보"
                           : "갱신 대기"}
                 </p>
-                <div className="source-board-links">{status.boardIds.map(id=><button className="text-button" key={id} onClick={()=>onNavigate(id)}>{boards.find(board=>board.id===id)?.title||id} 보드 열기</button>)}</div>
-                <small>{status.boardIds.length}개 보드에서 사용 중 · 제거하려면 해당 보드에서 위젯을 삭제하세요.</small>
+                <div className="source-board-links">
+                  {status.boardIds.map((id) => (
+                    <button
+                      className="text-button"
+                      key={id}
+                      onClick={() => onNavigate(id)}
+                    >
+                      {boards.find((board) => board.id === id)?.title || id}{" "}
+                      보드 열기
+                    </button>
+                  ))}
+                </div>
+                <small>
+                  {status.boardIds.length}개 보드에서 사용 중 · 제거하려면 해당
+                  보드에서 위젯을 삭제하세요.
+                </small>
                 {status.snapshot.updatedAt && (
                   <small>
                     마지막 성공{" "}
@@ -129,16 +186,35 @@ export function SourcePanel({ boards,onNavigate,onAddWidget }: { boards: Board[]
                   </small>
                 )}
               </div>
-              <div className="resource-actions"><button className="button secondary" aria-label={`${name} 지금 갱신`} disabled={busy===source.id||status.paused||Date.now()<Math.max(cooldowns[source.id]||0,Date.parse(status.snapshot.manualRefreshAfter||"")||0,Date.parse(status.snapshot.retryAt||"")||0)} onClick={()=>void refresh(status)}><RefreshCw size={14}/> 지금 갱신</button>
-              <button
-                className="button secondary"
-                disabled={busy === source.id}
-                aria-label={`${name} ${status.paused ? "계속 갱신" : "일시정지"}`}
-                onClick={() => void pause(status)}
-              >
-                {status.paused ? <Play size={14} /> : <Pause size={14} />}{" "}
-                {status.paused ? "계속 갱신" : "일시정지"}
-              </button></div>
+              <div className="resource-actions">
+                <button
+                  className="button secondary"
+                  aria-label={`${name} 지금 갱신`}
+                  disabled={
+                    busy === source.id ||
+                    status.paused ||
+                    Date.now() <
+                      Math.max(
+                        cooldowns[source.id] || 0,
+                        Date.parse(status.snapshot.manualRefreshAfter || "") ||
+                          0,
+                        Date.parse(status.snapshot.retryAt || "") || 0,
+                      )
+                  }
+                  onClick={() => void refresh(status)}
+                >
+                  <RefreshCw size={14} /> 지금 갱신
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={busy === source.id}
+                  aria-label={`${name} ${status.paused ? "계속 갱신" : "일시정지"}`}
+                  onClick={() => void pause(status)}
+                >
+                  {status.paused ? <Play size={14} /> : <Pause size={14} />}{" "}
+                  {status.paused ? "계속 갱신" : "일시정지"}
+                </button>
+              </div>
             </article>
           );
         })}

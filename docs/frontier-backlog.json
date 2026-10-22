@@ -824,11 +824,15 @@
       "depends_on": [
         "F041"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/research/layout-engine-spike.md",
+        "docs/research/layout-engine-results.json",
+        "experiments/layout-engines/verify.mjs"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-21T23:56:06+00:00",
-      "progress_note": "React 19.3.1 StrictMode에서 dnd-kit 6.3.1/sortable 10.0.0과 GridStack 14.0.0의 실제 번들·키보드·모바일 터치·DOM 순서 fixture를 비교한다.",
+      "updated_at": "2026-10-21T23:56:58+00:00",
+      "progress_note": "동일 React StrictMode fixture로 두 엔진의 번들/터치/키보드를 실측했다. dnd-kit은 키보드와 터치 후 DOM/배열 순서 일치. GridStack 기본 fixture 한계와 결과 범위를 기록하고 dnd-kit을 선택했다.",
       "started_at": "2026-10-21T23:56:06+00:00"
     },
     {
@@ -840,9 +844,15 @@
       "depends_on": [
         "F042"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f043-e2e-rerun.log: 2 passed",
+        "web/e2e/layout.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-21T23:59:17+00:00",
+      "progress_note": "전용 터치 핸들, 키보드 센서, 한국어 스크린리더 안내와 이동 버튼을 구현했다. 360px에서 두 입력 방식의 DOM/저장 ID·순서와 Escape 취소를 검증했다.",
+      "started_at": "2026-10-21T23:56:58+00:00"
     },
     {
       "id": "F044",
@@ -853,9 +863,15 @@
       "depends_on": [
         "F043"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f044-e2e-rerun.log: 6 passed",
+        "web/e2e/editor-reducer.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:00:37+00:00",
+      "progress_note": "최대 50개 undo/redo, 삭제된 source 복구, 새 편집의 redo 폐기와 저장/취소 경계를 구현했다. 버튼 및 Ctrl/Cmd+Z, ID 복원과 히스토리 상한 검증 통과.",
+      "started_at": "2026-10-21T23:59:17+00:00"
     },
     {
       "id": "F045",
@@ -866,9 +882,15 @@
       "depends_on": [
         "F044"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f045-e2e-rerun.log: 5 passed",
+        "web/e2e/drafts.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:01:52+00:00",
+      "progress_note": "기기 초안 복구는 기본 off이고 24시간 만료/동일 revision/서버 검증을 거친다. source 설정은 저장하지 않고 ID로 재구성한다. 새 source는 서버 저장을 요구하며 logout 시 opt-in과 초안을 지운다.",
+      "started_at": "2026-10-22T00:00:37+00:00"
     },
     {
       "id": "F046",
@@ -879,9 +901,15 @@
       "depends_on": [
         "F045"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f046-e2e.log: 2 passed",
+        "web/e2e/conflicts.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:03:22+00:00",
+      "progress_note": "타 탭 저장 알림은 ID/revision만 교환하고 CAS로 최종 확인한다. 로컬 초안을 보존해 세 버전을 비교하고 비충돌 원격 변경을 합친 뒤 검증된 초안으로 재적용한다. 재적용 자체는 저장하지 않는다.",
+      "started_at": "2026-10-22T00:01:52+00:00"
     },
     {
       "id": "F047",
@@ -892,9 +920,15 @@
       "depends_on": [
         "F046"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f047-048-e2e.log: 7 passed",
+        "web/e2e/boards.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:05:18+00:00",
+      "progress_note": "보드 생성/템플릿/이름/복제/삭제 UI를 구현했다. 복제 ID 분리, 삭제 제한, dirty guard와 back 취소 후 재이동/forward 보존, 기존 360px 탐색을 검증했다.",
+      "started_at": "2026-10-22T00:03:22+00:00"
     },
     {
       "id": "F048",
@@ -905,9 +939,15 @@
       "depends_on": [
         "F047"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f047-048-e2e.log: 7 passed",
+        "web/e2e/transfer.spec.ts",
+        "docs/import-export.md"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:05:18+00:00",
+      "progress_note": "v1 import/export 호환과 위젯/소스 참조, 미래 config version, UTF-8 1MiB 한도를 검증했다. 검증 전 렌더/DB 변경 없이 초안 미리보기 후 CAS 저장하며 기존 템플릿 흐름도 통과했다."
     },
     {
       "id": "F049",
@@ -921,9 +961,15 @@
         "F040",
         "F048"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "f049-go-race.log: PASS",
+        "internal/dashboard/feed_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T00:07:39+00:00",
+      "progress_note": "RSS/Atom/JSON Feed 항목의 안정 ID, 상대 URL/추적 파라미터 정규화, 날짜 내림차순, 중복 제거와 50개 상한, HTML 없는 발췌를 구현했다. malformed/DTD/unsafe 링크 fixture와 race 검사 통과.",
+      "started_at": "2026-10-22T00:05:18+00:00"
     },
     {
       "id": "F050",
@@ -934,9 +980,12 @@
       "depends_on": [
         "F049"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": true
+      "live_credentials_required": true,
+      "updated_at": "2026-10-22T00:07:39+00:00",
+      "progress_note": "날씨 위치 검색과 단위/시간대 설정, 없는 응답값의 null 처리 및 안전한 표시를 구현하고 mock HTTP로 검증한다.",
+      "started_at": "2026-10-22T00:07:39+00:00"
     },
     {
       "id": "F051",

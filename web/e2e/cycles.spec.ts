@@ -205,19 +205,17 @@ test("cycle 08: import validates before preview and commits only on save", async
   imported.title = "가져온 공간";
   imported.widgets.find((widget) => widget.type === "note")!.config.body =
     "백업에서 가져온 메모";
-  await page
-    .getByLabel("설정 JSON 파일")
-    .setInputFiles({
-      name: "backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({
-          format: "glance-dashboard",
-          version: 1,
-          board: imported,
-        }),
-      ),
-    });
+  await page.getByLabel("설정 JSON 파일").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        format: "glance-dashboard",
+        version: 1,
+        board: imported,
+      }),
+    ),
+  });
   await expect(page.getByLabel("대시보드 이름")).toHaveValue("가져온 공간");
   await expect(
     page.getByText("백업에서 가져온 메모", { exact: true }),
@@ -233,26 +231,22 @@ test("cycle 08: import validates before preview and commits only on save", async
   await expect(page.locator(".breadcrumbs")).toContainText("가져온 공간");
   const bad = structuredClone(imported) as any;
   bad.widgets[0].type = "unknown-widget";
-  await page
-    .getByLabel("설정 JSON 파일")
-    .setInputFiles({
-      name: "invalid.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({ format: "glance-dashboard", version: 1, board: bad }),
-      ),
-    });
+  await page.getByLabel("설정 JSON 파일").setInputFiles({
+    name: "invalid.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({ format: "glance-dashboard", version: 1, board: bad }),
+    ),
+  });
   await expect(page.getByRole("alert")).toContainText("지원하지 않는 위젯");
   expect((await (await request.get("/api/v1/dashboard")).json()).title).toBe(
     "가져온 공간",
   );
-  await page
-    .getByLabel("설정 JSON 파일")
-    .setInputFiles({
-      name: "broken.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{"),
-    });
+  await page.getByLabel("설정 JSON 파일").setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{"),
+  });
   await expect(page.getByRole("alert")).toContainText("올바른 JSON 설정 파일");
 });
 

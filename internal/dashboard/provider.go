@@ -1,7 +1,6 @@
 package dashboard
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/mmcdole/gofeed"
 )
 
 type Providers struct {
@@ -205,6 +202,8 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 }
 
 type FeedItem struct {
+	ID          string     `json:"id,omitempty"`
+	Excerpt     string     `json:"excerpt,omitempty"`
 	Title       string     `json:"title"`
 	URL         string     `json:"url"`
 	PublishedAt *time.Time `json:"publishedAt,omitempty"`
@@ -243,25 +242,9 @@ func (p *Providers) fetchRSS(ctx context.Context, s Source) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := validateFeedDocument(data); err != nil {
-		return nil, err
-	}
-	feed, err := gofeed.NewParser().Parse(bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	out := FeedData{Title: feed.Title, Items: []FeedItem{}}
-	for _, item := range feed.Items {
-		if len(out.Items) >= 50 {
-			break
-		}
-		if _, err := publicURL(item.Link); err != nil {
-			continue
-		}
-		out.Items = append(out.Items, FeedItem{Title: item.Title, URL: item.Link, PublishedAt: item.PublishedParsed})
-	}
-	return out, nil
+	return parseFeed(data, c.URL)
 }
+
 func (p *Providers) fetchWeather(ctx context.Context, s Source) (any, error) {
 	var c WeatherSource
 	if err := decodeConfig(s.Config, &c); err != nil {

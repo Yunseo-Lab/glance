@@ -108,12 +108,52 @@ test("session loss returns to login while preserving an unsaved draft", async ({
   );
 });
 
-test('logout removes private query responses and a new login fetches current connection metadata',async({page,request})=>{
- await page.goto(origin);await page.getByLabel('비밀번호',{exact:true}).fill(password);await page.getByRole('button',{name:'로그인',exact:true}).click();await page.getByRole('button',{name:'데이터 소스',exact:true}).click();
- await expect(page.getByText('아직 개인 연결이 없습니다.',{exact:false})).toBeVisible();
- let reads=0;page.on('request',req=>{if(req.url()===origin+'/api/v1/connections'&&req.method()==='GET')reads++});
- await page.getByRole('button',{name:'로그아웃',exact:true}).click();await expect(page.getByRole('heading',{name:'나의 공간에 로그인'})).toBeVisible();
- const created=await request.post(origin+'/api/v1/connections',{headers:{Origin:origin,Authorization:'Basic '+Buffer.from('owner:'+password).toString('base64')},data:{name:'새 세션 연결',kind:'github',token:'fixture_not_used_for_network'}});expect(created.status()).toBe(201);
- await page.getByLabel('비밀번호',{exact:true}).fill(password);await page.getByRole('button',{name:'로그인',exact:true}).click();
- await expect(page.getByRole('heading',{name:'새 세션 연결',exact:true})).toBeVisible();expect(reads).toBeGreaterThan(0);
+test("logout removes private query responses and a new login fetches current connection metadata", async ({
+  page,
+  request,
+}) => {
+  await page.goto(origin);
+  await page.getByLabel("비밀번호", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await page.getByRole("button", { name: "데이터 소스", exact: true }).click();
+  await expect(
+    page.getByText("아직 개인 연결이 없습니다.", { exact: false }),
+  ).toBeVisible();
+  let reads = 0;
+  page.on("request", (req) => {
+    if (req.url() === origin + "/api/v1/connections" && req.method() === "GET")
+      reads++;
+  });
+  await page.evaluate(() => {
+    localStorage.setItem("glance:draft-opt-in", "true");
+    localStorage.setItem("glance:draft:fixture", "private fixture");
+  });
+  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "나의 공간에 로그인" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((key) => key.startsWith("glance:draft")),
+    ),
+  ).toEqual([]);
+  const created = await request.post(origin + "/api/v1/connections", {
+    headers: {
+      Origin: origin,
+      Authorization:
+        "Basic " + Buffer.from("owner:" + password).toString("base64"),
+    },
+    data: {
+      name: "새 세션 연결",
+      kind: "github",
+      token: "fixture_not_used_for_network",
+    },
+  });
+  expect(created.status()).toBe(201);
+  await page.getByLabel("비밀번호", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "새 세션 연결", exact: true }),
+  ).toBeVisible();
+  expect(reads).toBeGreaterThan(0);
 });

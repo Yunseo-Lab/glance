@@ -1,8 +1,24 @@
-import {editorReducer,initialEditor,pruneBoard as prune} from "./editor/reducer";
-import {queryClient,queryOptions,clearPrivateQueries} from "./workspace/queries";
-import {useResource} from "./workspace/useResource";
+import BoardManager from "./workspace/BoardManager";
+import { boardNotifications, announceBoard } from "./editor/boardNotifications";
+import ConflictReview from "./editor/ConflictReview";
+import { useDraftRecovery } from "./editor/useDraftRecovery";
+import { SortableBoard, SortableWidget } from "./editor/SortableBoard";
+import {
+  editorReducer,
+  initialEditor,
+  pruneBoard as prune,
+} from "./editor/reducer";
+import {
+  queryClient,
+  queryOptions,
+  clearPrivateQueries,
+} from "./workspace/queries";
+import { useResource } from "./workspace/useResource";
 import { useEffect, useRef, useState, useReducer } from "react";
 import {
+  Layers,
+  Undo2,
+  Redo2,
   ArrowDown,
   ArrowUp,
   CalendarDays,
@@ -65,7 +81,8 @@ const icons = {
 type Category = "all" | "news" | "daily";
 
 export default function App() {
-  const [{saved,draft,editing},dispatchEditor]=useReducer(editorReducer,initialEditor);
+  const [{ saved, draft, editing, past = [], future = [] }, dispatchEditor] =
+    useReducer(editorReducer, initialEditor);
   const [editor, setEditor] = useState<Widget | "new" | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -75,12 +92,12 @@ export default function App() {
   const [conflict, setConflict] = useState(false);
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
-  const [dragged, setDragged] = useState<string>();
   const [now, setNow] = useState(new Date());
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [focusWidgetId, setFocusWidgetId] = useState<string>();
   const importInput = useRef<HTMLInputElement>(null);
- const [commandOpen,setCommandOpen]=useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [boardsOpen, setBoardsOpen] = useState(false);
 
   const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
   const { route, navigate } = useWorkspaceNavigation(() => {
@@ -90,10 +107,35 @@ export default function App() {
       window.confirm("저장하지 않은 변경 사항을 버리고 다른 보드로 이동할까요?")
     );
   });
+  const recovery = useDraftRecovery(saved, draft, dirty, authRequired);
+  useEffect(() => {
+    const receive = (event: MessageEvent) => {
+      if (
+        authRequired ||
+        !saved ||
+        event.data?.id !== saved.id ||
+        typeof event.data.revision !== "number" ||
+        event.data.revision <= saved.revision
+      )
+        return;
+      if (dirty || editing) {
+        setConflict(true);
+        setError(
+          "다른 탭에서 이 보드를 저장했습니다. 내 편집을 유지한 채 변경을 비교하세요.",
+        );
+      } else setLoadAttempt((attempt) => attempt + 1);
+    };
+    boardNotifications?.addEventListener("message", receive);
+    return () => boardNotifications?.removeEventListener("message", receive);
+  }, [saved, dirty, editing, authRequired]);
   const boardID = route.boardID;
   const boardEndpoint =
     boardID === "home" ? "/api/v1/dashboard" : `/api/v1/boards/${boardID}`;
-  const {data:boards=[]}=useResource<Board[]>("/api/v1/boards",0,!authRequired);
+  const { data: boards = [] } = useResource<Board[]>(
+    "/api/v1/boards",
+    0,
+    !authRequired,
+  );
   const {
     snapshots,
     error: connectionError,
@@ -127,15 +169,49 @@ export default function App() {
     };
   }, []);
 
-  useEffect(()=>{
-   function shortcut(event:KeyboardEvent){
-    if(event.isComposing||event.keyCode===229||event.altKey||event.defaultPrevented||document.querySelector("dialog[open]"))return;
-    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setCommandOpen(true);return}
-    const target=event.target as HTMLElement|null;
-    if(event.key==="/"&&!event.ctrlKey&&!event.metaKey&&!target?.closest("input,textarea,select,[contenteditable=true]")&&route.page==="board"){event.preventDefault();document.querySelector<HTMLInputElement>('[aria-label="위젯 검색"]')?.focus()}
-   }
-   window.addEventListener("keydown",shortcut);return()=>window.removeEventListener("keydown",shortcut)
-  },[route.page]);
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      if (
+        event.isComposing ||
+        event.keyCode === 229 ||
+        event.altKey ||
+        event.defaultPrevented ||
+        document.querySelector("dialog[open]")
+      )
+        return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (
+        editing &&
+        !saving &&
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "z" &&
+        !target?.closest("input,textarea,select,[contenteditable=true]")
+      ) {
+        event.preventDefault();
+        dispatchEditor({ type: event.shiftKey ? "redo" : "undo" });
+        return;
+      }
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !target?.closest("input,textarea,select,[contenteditable=true]") &&
+        route.page === "board"
+      ) {
+        event.preventDefault();
+        document
+          .querySelector<HTMLInputElement>('[aria-label="위젯 검색"]')
+          ?.focus();
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, [route.page, editing, saving]);
   async function importFile(file: File) {
     if (!saved || saving) return;
     setSaving(true);
@@ -154,8 +230,8 @@ export default function App() {
           revision: saved.revision,
         }),
       });
-      dispatchEditor({type:"replace",board:validated});
-      dispatchEditor({type:"begin"});
+      dispatchEditor({ type: "replace", board: validated });
+      dispatchEditor({ type: "begin" });
       setCategory("all");
       setQuery("");
       setNotice("설정을 불러왔습니다. 확인한 뒤 대시보드 저장을 눌러주세요.");
@@ -179,15 +255,23 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     if (saved?.id !== boardID) {
-      dispatchEditor({type:"clear"});
+      dispatchEditor({ type: "clear" });
       setEditor(null);
       setConflict(false);
       setCategory("all");
       setQuery("");
     }
-    queryClient.fetchQuery({...queryOptions<Board>(boardEndpoint),staleTime:0,queryFn:({signal})=>request<Board>(boardEndpoint,{signal:AbortSignal.any([signal,controller.signal])})})
+    queryClient
+      .fetchQuery({
+        ...queryOptions<Board>(boardEndpoint),
+        staleTime: 0,
+        queryFn: ({ signal }) =>
+          request<Board>(boardEndpoint, {
+            signal: AbortSignal.any([signal, controller.signal]),
+          }),
+      })
       .then((board) => {
-        dispatchEditor({type:"load",board});
+        dispatchEditor({ type: "load", board });
         setError("");
       })
       .catch((err) => {
@@ -228,7 +312,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prune({ ...board, title: board.title.trim() })),
       });
-      dispatchEditor({type:"load",board:result});
+      dispatchEditor({ type: "load", board: result });
+      announceBoard(result.id, result.revision);
       setNotice("변경 사항을 저장했습니다.");
     } catch (err) {
       setError((err as Error).message);
@@ -239,26 +324,37 @@ export default function App() {
   }
   function updateWidget(widget: Widget, source?: Source) {
     if (!draft) return;
-    if(!draft.widgets.some(item=>item.id===widget.id)){setCategory("all");setQuery("");setFocusWidgetId(widget.id)}
-    dispatchEditor({type:"upsert",widget,source});
+    if (!draft.widgets.some((item) => item.id === widget.id)) {
+      setCategory("all");
+      setQuery("");
+      setFocusWidgetId(widget.id);
+    }
+    dispatchEditor({ type: "upsert", widget, source });
     setEditor(null);
     setNotice("대시보드 저장을 눌러 변경 사항을 보관하세요.");
   }
-  function move(id:string,to:number){dispatchEditor({type:"move",id,to})}
-  function duplicateWidget(id:string){
-    if(!draft||saving||draft.widgets.length>=32)return;
-    const newID=crypto.randomUUID();dispatchEditor({type:"duplicate",id,newID});setCategory("all");setQuery("");setFocusWidgetId(newID);setNotice("위젯을 복제했습니다. 대시보드 저장을 눌러 보관하세요.");
+  function move(id: string, to: number) {
+    dispatchEditor({ type: "move", id, to });
+  }
+  function duplicateWidget(id: string) {
+    if (!draft || saving || draft.widgets.length >= 32) return;
+    const newID = crypto.randomUUID();
+    dispatchEditor({ type: "duplicate", id, newID });
+    setCategory("all");
+    setQuery("");
+    setFocusWidgetId(newID);
+    setNotice("위젯을 복제했습니다. 대시보드 저장을 눌러 보관하세요.");
   }
   function beginAdd() {
     navigate("board");
     if (!draft || draft.widgets.length >= 32) return;
-    dispatchEditor({type:"begin"});
+    dispatchEditor({ type: "begin" });
     setEditor("new");
   }
   function discardDraft(): boolean {
     if (dirty && !window.confirm("저장하지 않은 변경 사항을 버릴까요?"))
       return false;
-    dispatchEditor({type:"cancel"});
+    dispatchEditor({ type: "cancel" });
     setError("");
     setNotice("변경 사항을 취소했습니다.");
     return true;
@@ -274,7 +370,7 @@ export default function App() {
     setSaving(true);
     try {
       const board = await request<Board>(boardEndpoint);
-      dispatchEditor({type:"load",board});
+      dispatchEditor({ type: "load", board });
       setError("");
       setConflict(false);
       setNotice("최신 설정을 불러왔습니다.");
@@ -382,7 +478,9 @@ export default function App() {
             <button
               key={id}
               className={`nav-item ${category === id ? "active" : ""}`}
-              aria-current={route.page === "board" && category === id ? "page" : undefined}
+              aria-current={
+                route.page === "board" && category === id ? "page" : undefined
+              }
               onClick={() => {
                 setCategory(id);
                 navigate("board");
@@ -437,7 +535,14 @@ export default function App() {
             </strong>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button" aria-label="명령 팔레트 열기" title="Ctrl / ⌘ K" onClick={()=>setCommandOpen(true)}><Search size={18}/></button>
+            <button
+              className="icon-button"
+              aria-label="명령 팔레트 열기"
+              title="Ctrl / ⌘ K"
+              onClick={() => setCommandOpen(true)}
+            >
+              <Search size={18} />
+            </button>
             <label className="search" hidden={route.page !== "board"}>
               <Search size={16} />
               <input
@@ -457,6 +562,13 @@ export default function App() {
               )}
             </label>
             <button
+              className="icon-button"
+              aria-label="보드 관리"
+              onClick={() => setBoardsOpen(true)}
+            >
+              <Layers size={18} />
+            </button>
+            <button
               className="icon-button theme-toggle"
               disabled={saving}
               aria-label={draft.theme === "light" ? "어두운 테마" : "밝은 테마"}
@@ -465,7 +577,8 @@ export default function App() {
                   ...draft,
                   theme: draft.theme === "light" ? "dark" : "light",
                 };
-                if (editing) dispatchEditor({type:"theme",theme:next.theme});
+                if (editing)
+                  dispatchEditor({ type: "theme", theme: next.theme });
                 else void persist(next);
               }}
             >
@@ -489,7 +602,7 @@ export default function App() {
                     setAuthRequired(true);
                     clearPrivateQueries();
                     window.dispatchEvent(new Event("glance:logout"));
-                    dispatchEditor({type:"clear"});
+                    dispatchEditor({ type: "clear" });
                     setEditor(null);
                     setError("");
                     setNotice("");
@@ -513,7 +626,13 @@ export default function App() {
           boards={boards}
         />
         <main id="main" tabIndex={-1}>
-          {route.page === "sources" && <SourcePanel boards={boards} onNavigate={id=>navigate("board",id)} onAddWidget={beginAdd}/>}
+          {route.page === "sources" && (
+            <SourcePanel
+              boards={boards}
+              onNavigate={(id) => navigate("board", id)}
+              onAddWidget={beginAdd}
+            />
+          )}
           {route.page === "inbox" && (
             <ReadingPanel board={saved} snapshots={snapshots} />
           )}
@@ -593,6 +712,22 @@ export default function App() {
                 {editing ? (
                   <>
                     <button
+                      className="icon-button"
+                      aria-label="편집 되돌리기"
+                      disabled={saving || !past.length}
+                      onClick={() => dispatchEditor({ type: "undo" })}
+                    >
+                      <Undo2 size={17} />
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label="편집 다시 적용"
+                      disabled={saving || !future.length}
+                      onClick={() => dispatchEditor({ type: "redo" })}
+                    >
+                      <Redo2 size={17} />
+                    </button>
+                    <button
                       className="button secondary"
                       disabled={saving}
                       onClick={() => discardDraft()}
@@ -618,7 +753,7 @@ export default function App() {
                       className="button secondary"
                       disabled={saving}
                       onClick={() => {
-                        dispatchEditor({type:"begin"});
+                        dispatchEditor({ type: "begin" });
                         setNotice("");
                       }}
                     >
@@ -635,6 +770,58 @@ export default function App() {
                 )}
               </div>
             </section>
+            {editing && (
+              <label className="draft-opt-in">
+                <input
+                  type="checkbox"
+                  checked={recovery.enabled}
+                  onChange={(event) => recovery.toggle(event.target.checked)}
+                />{" "}
+                이 기기에 초안 복구 허용 (24시간)
+                <small>
+                  메모와 배치는 이 브라우저에 보관합니다. 새 소스 주소와 연결
+                  비밀정보는 보관하지 않습니다.
+                </small>
+              </label>
+            )}
+            {recovery.error && (
+              <p role="status" className="banner">
+                {recovery.error}
+              </p>
+            )}
+            {recovery.candidate && (
+              <div className="banner" role="status">
+                <span>이 기기에 저장하지 않은 초안이 있습니다.</span>
+                <button
+                  className="button secondary"
+                  onClick={async () => {
+                    try {
+                      const board = await request<Board>(
+                        `${boardEndpoint}/validate`,
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(recovery.candidate),
+                        },
+                      );
+                      dispatchEditor({ type: "replace", board });
+                      dispatchEditor({ type: "begin" });
+                      recovery.dismiss();
+                      setNotice(
+                        "초안을 복구했습니다. 확인 후 대시보드 저장을 눌러주세요.",
+                      );
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                >
+                  기기 초안 복구
+                </button>
+                <button className="button secondary" onClick={recovery.dismiss}>
+                  기기 초안 삭제
+                </button>
+              </div>
+            )}
             {connectionError && (
               <div className="banner connection-banner" role="status">
                 {connectionError}
@@ -676,6 +863,23 @@ export default function App() {
                 </button>
               </div>
             )}
+            {conflict && (
+              <ConflictReview
+                base={saved}
+                local={draft}
+                endpoint={boardEndpoint}
+                onReapply={(remote, merged) => {
+                  dispatchEditor({ type: "load", board: remote });
+                  dispatchEditor({ type: "replace", board: merged });
+                  dispatchEditor({ type: "begin" });
+                  setConflict(false);
+                  setError("");
+                  setNotice(
+                    "변경을 합친 초안입니다. 검토 후 대시보드 저장을 눌러주세요.",
+                  );
+                }}
+              />
+            )}
             {notice && (
               <div className="banner" role="status">
                 <CheckCheck size={16} />
@@ -698,7 +902,7 @@ export default function App() {
                   maxLength={30}
                   disabled={saving}
                   onChange={(event) =>
-                    dispatchEditor({type:"title",title:event.target.value})
+                    dispatchEditor({ type: "title", title: event.target.value })
                   }
                 />
                 <span className="draft-status" aria-live="polite">
@@ -736,120 +940,143 @@ export default function App() {
                 )}
               </span>
             </div>
-            {saved.revision===1&&!editing&&<StarterTemplates onPreview={template=>{dispatchEditor({type:"replace",board:{...template,id:saved.id,title:saved.title,revision:saved.revision}});dispatchEditor({type:"begin"});setCategory("all");setQuery("");setNotice("템플릿을 불러왔습니다. 확인 후 대시보드 저장을 눌러주세요.")}}/>}
-<div
-              className={`widget-grid ${editing ? "is-editing" : ""}`}
-              inert={saving}
+            {saved.revision === 1 && !editing && (
+              <StarterTemplates
+                onPreview={(template) => {
+                  dispatchEditor({
+                    type: "replace",
+                    board: {
+                      ...template,
+                      id: saved.id,
+                      title: saved.title,
+                      revision: saved.revision,
+                    },
+                  });
+                  dispatchEditor({ type: "begin" });
+                  setCategory("all");
+                  setQuery("");
+                  setNotice(
+                    "템플릿을 불러왔습니다. 확인 후 대시보드 저장을 눌러주세요.",
+                  );
+                }}
+              />
+            )}
+            <SortableBoard
+              widgets={visible}
+              disabled={!editing || saving}
+              onMove={(id, toID) =>
+                move(
+                  id,
+                  draft.widgets.findIndex((widget) => widget.id === toID),
+                )
+              }
             >
-              {visible.map((widget) => {
-                const Icon = icons[widget.type as WidgetType] || NotebookPen;
-                const index = draft.widgets.findIndex(
-                  (w) => w.id === widget.id,
-                );
-                return (
-                  <article
-                    key={widget.id}
-                    id={`widget-${widget.id}`}
-                    tabIndex={-1}
-                    data-widget-id={widget.id}
-                    className={`widget-card ${widget.type}-card size-${widget.size} ${dragged === widget.id ? "dragging" : ""}`}
-                    draggable={editing}
-                    onDragStart={(event) => {
-                      setDragged(widget.id);
-                      event.dataTransfer.setData("text/plain", widget.id);
-                      event.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragEnd={() => setDragged(undefined)}
-                    onDragOver={(event) => {
-                      if (editing) event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      if (!editing) return;
-                      event.preventDefault();
-                      move(event.dataTransfer.getData("text/plain"), index);
-                      setDragged(undefined);
-                    }}
-                  >
-                    <div className="widget-header">
-                      <div className="widget-title">
-                        <span className={`widget-icon ${widget.type}`}>
-                          <Icon size={16} />
-                        </span>
-                        <h2>{widget.title}</h2>
-                      </div>
-                      {editing && (
-                        <div className="widget-controls">
-                          <button
-                            className="icon-button"
-                            disabled={saving || draft.widgets.length >= 32}
-                            aria-label={`${widget.title} 복제`}
-                            onClick={() => duplicateWidget(widget.id)}
-                          >
-                            <Copy size={14} />
-                          </button>
-                          <button
-                            className="icon-button"
-                            disabled={index === 0}
-                            aria-label={`${widget.title} 앞으로 이동`}
-                            onClick={() => move(widget.id, index - 1)}
-                          >
-                            <ArrowUp size={14} />
-                          </button>
-                          <button
-                            className="icon-button"
-                            disabled={index === draft.widgets.length - 1}
-                            aria-label={`${widget.title} 뒤로 이동`}
-                            onClick={() => move(widget.id, index + 1)}
-                          >
-                            <ArrowDown size={14} />
-                          </button>
-                          <button
-                            className="icon-button"
-                            aria-label={`${widget.title} 설정`}
-                            onClick={() => setEditor(widget)}
-                          >
-                            <Settings2 size={14} />
-                          </button>
-                          <button
-                            className="icon-button danger"
-                            aria-label={`${widget.title} 삭제`}
-                            onClick={() =>
-                              dispatchEditor({type:"remove",id:widget.id})
-                            }
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+              <div
+                className={`widget-grid ${editing ? "is-editing" : ""}`}
+                inert={saving}
+              >
+                {visible.map((widget) => {
+                  const Icon = icons[widget.type as WidgetType] || NotebookPen;
+                  const index = draft.widgets.findIndex(
+                    (w) => w.id === widget.id,
+                  );
+                  return (
+                    <SortableWidget
+                      key={widget.id}
+                      widget={widget}
+                      disabled={!editing || saving}
+                    >
+                      {(handle) => (
+                        <>
+                          <div className="widget-header">
+                            <div className="widget-title">
+                              <span className={`widget-icon ${widget.type}`}>
+                                <Icon size={16} />
+                              </span>
+                              <h2>{widget.title}</h2>
+                            </div>
+                            {editing && (
+                              <div className="widget-controls">
+                                {handle}
+                                <button
+                                  className="icon-button"
+                                  disabled={
+                                    saving || draft.widgets.length >= 32
+                                  }
+                                  aria-label={`${widget.title} 복제`}
+                                  onClick={() => duplicateWidget(widget.id)}
+                                >
+                                  <Copy size={14} />
+                                </button>
+                                <button
+                                  className="icon-button"
+                                  disabled={index === 0}
+                                  aria-label={`${widget.title} 앞으로 이동`}
+                                  onClick={() => move(widget.id, index - 1)}
+                                >
+                                  <ArrowUp size={14} />
+                                </button>
+                                <button
+                                  className="icon-button"
+                                  disabled={index === draft.widgets.length - 1}
+                                  aria-label={`${widget.title} 뒤로 이동`}
+                                  onClick={() => move(widget.id, index + 1)}
+                                >
+                                  <ArrowDown size={14} />
+                                </button>
+                                <button
+                                  className="icon-button"
+                                  aria-label={`${widget.title} 설정`}
+                                  onClick={() => setEditor(widget)}
+                                >
+                                  <Settings2 size={14} />
+                                </button>
+                                <button
+                                  className="icon-button danger"
+                                  aria-label={`${widget.title} 삭제`}
+                                  onClick={() =>
+                                    dispatchEditor({
+                                      type: "remove",
+                                      id: widget.id,
+                                    })
+                                  }
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <WidgetBoundary key={JSON.stringify(widget)}>
+                            <WidgetView
+                              widget={widget}
+                              snapshot={
+                                widget.sourceId
+                                  ? snapshots[widget.sourceId]
+                                  : undefined
+                              }
+                              now={now}
+                            />
+                          </WidgetBoundary>
+                        </>
                       )}
-                    </div>
-                    <WidgetBoundary key={JSON.stringify(widget)}>
-                      <WidgetView
-                        widget={widget}
-                        snapshot={
-                          widget.sourceId
-                            ? snapshots[widget.sourceId]
-                            : undefined
-                        }
-                        now={now}
-                      />
-                    </WidgetBoundary>
-                  </article>
-                );
-              })}
-              {editing && (
-                <button
-                  className="add-widget-card"
-                  disabled={draft.widgets.length >= 32}
-                  onClick={beginAdd}
-                >
-                  <span>
-                    <Plus size={25} />
-                  </span>
-                  <strong>나의 대시보드 채우기</strong>
-                  <small>필요한 위젯을 추가해 보세요</small>
-                </button>
-              )}
-            </div>
+                    </SortableWidget>
+                  );
+                })}
+                {editing && (
+                  <button
+                    className="add-widget-card"
+                    disabled={draft.widgets.length >= 32}
+                    onClick={beginAdd}
+                  >
+                    <span>
+                      <Plus size={25} />
+                    </span>
+                    <strong>나의 대시보드 채우기</strong>
+                    <small>필요한 위젯을 추가해 보세요</small>
+                  </button>
+                )}
+              </div>
+            </SortableBoard>
             {!visible.length && !editing && (
               <div className="empty-board">
                 <Search size={32} />
@@ -881,7 +1108,26 @@ export default function App() {
           </div>
         </main>
       </div>
-      {commandOpen&&<CommandPalette boards={boards} onNavigate={navigate} onAdd={beginAdd} onClose={()=>setCommandOpen(false)}/>}
+      {boardsOpen && (
+        <BoardManager
+          boards={boards}
+          currentID={saved.id}
+          dirty={dirty}
+          onClose={() => setBoardsOpen(false)}
+          onNavigate={(id) => {
+            if (id === saved.id) setLoadAttempt((attempt) => attempt + 1);
+            else navigate("board", id);
+          }}
+        />
+      )}
+      {commandOpen && (
+        <CommandPalette
+          boards={boards}
+          onNavigate={navigate}
+          onAdd={beginAdd}
+          onClose={() => setCommandOpen(false)}
+        />
+      )}
       {editor && (
         <WidgetEditor
           key={editor === "new" ? "new" : editor.id}

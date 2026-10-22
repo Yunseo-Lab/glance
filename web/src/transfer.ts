@@ -7,6 +7,8 @@ export interface DashboardFile {
 }
 
 export function parseDashboardFile(text: string): Board {
+  if (new TextEncoder().encode(text).length > 1_048_576)
+    throw new Error("설정 파일은 1MB 이하여야 합니다.");
   let value: unknown;
   try {
     value = JSON.parse(text);

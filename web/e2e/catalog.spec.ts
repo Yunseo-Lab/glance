@@ -53,16 +53,48 @@ test("field errors identify and focus the invalid input while preview and cancel
   expect(after).toEqual(before);
 });
 
-test('command palette supports keyboard navigation and ignores composing or modal typing',async({page})=>{
- await page.goto('/');await expect(page.getByRole('heading',{name:'오늘도, 한눈에.'})).toBeVisible();
- await page.keyboard.press('Control+k');await expect(page.getByRole('dialog',{name:'무엇을 할까요?'})).toBeVisible();
- await page.getByRole('combobox',{name:'명령 검색'}).fill('데이터 소스');await page.keyboard.press('Enter');
- await expect(page.getByRole('heading',{name:'데이터 소스',exact:true})).toBeVisible();
- await page.keyboard.press('Control+k');await page.getByRole('combobox',{name:'명령 검색'}).fill('위젯 추가');await page.keyboard.press('Enter');
- await expect(page.getByRole('dialog',{name:'새 위젯 추가'})).toBeVisible();
- await page.getByLabel('카탈로그 검색',{exact:true}).fill('note/k');await expect(page.getByLabel('카탈로그 검색',{exact:true})).toHaveValue('note/k');
- await page.keyboard.press('Control+k');await expect(page.getByRole('dialog',{name:'무엇을 할까요?'})).toHaveCount(0);
- await page.keyboard.press('Escape');
- await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,isComposing:true,bubbles:true})));
- await expect(page.getByRole('dialog',{name:'무엇을 할까요?'})).toHaveCount(0);
+test("command palette supports keyboard navigation and ignores composing or modal typing", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "오늘도, 한눈에." }),
+  ).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await expect(
+    page.getByRole("dialog", { name: "무엇을 할까요?" }),
+  ).toBeVisible();
+  await page.getByRole("combobox", { name: "명령 검색" }).fill("데이터 소스");
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "데이터 소스", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "명령 검색" }).fill("위젯 추가");
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("dialog", { name: "새 위젯 추가" }),
+  ).toBeVisible();
+  await page.getByLabel("카탈로그 검색", { exact: true }).fill("note/k");
+  await expect(page.getByLabel("카탈로그 검색", { exact: true })).toHaveValue(
+    "note/k",
+  );
+  await page.keyboard.press("Control+k");
+  await expect(
+    page.getByRole("dialog", { name: "무엇을 할까요?" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "k",
+        ctrlKey: true,
+        isComposing: true,
+        bubbles: true,
+      }),
+    ),
+  );
+  await expect(
+    page.getByRole("dialog", { name: "무엇을 할까요?" }),
+  ).toHaveCount(0);
 });

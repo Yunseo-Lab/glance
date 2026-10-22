@@ -629,6 +629,12 @@ components:
             type: object
             required: [title, url]
             properties:
+              id:
+                type: string
+                description: Stable source-scoped entry identity; absent in legacy cached snapshots
+              excerpt:
+                type: string
+                description: Plain text only
               title:
                 type: string
               url:

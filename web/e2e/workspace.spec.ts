@@ -75,16 +75,42 @@ test("mobile navigation remains usable and unknown pages can recover", async ({
   ).toBeVisible();
 });
 
-test('starter template previews without saving and commits key-free daily widgets',async({page,request})=>{
- const response=await request.post('/api/v1/boards',{headers:{Origin:'http://127.0.0.1:8091'},data:{title:'첫 사용 검증'}});const starter:Board=await response.json();
- try{
-  await page.goto(`/#/boards/${starter.id}`);
-  await page.getByRole('button',{name:/일상으로 시작/}).click();
-  await expect(page.locator('article.widget-card')).toHaveCount(4);
-  let persisted:Board=await(await request.get(`/api/v1/boards/${starter.id}`)).json();expect(persisted.widgets).toHaveLength(0);
-  await page.getByRole('button',{name:'대시보드 저장',exact:true}).click();
-  await expect(page.getByText('변경 사항을 저장했습니다.',{exact:true})).toBeVisible();
-  await page.reload();await expect(page.locator('article.widget-card')).toHaveCount(4);
-  persisted=await(await request.get(`/api/v1/boards/${starter.id}`)).json();expect(persisted.sources).toHaveLength(0);
- }finally{const current:Board=await(await request.get(`/api/v1/boards/${starter.id}`)).json();await request.delete(`/api/v1/boards/${starter.id}`,{headers:{Origin:'http://127.0.0.1:8091'},data:{revision:current.revision}})}
+test("starter template previews without saving and commits key-free daily widgets", async ({
+  page,
+  request,
+}) => {
+  const response = await request.post("/api/v1/boards", {
+    headers: { Origin: "http://127.0.0.1:8091" },
+    data: { title: "첫 사용 검증" },
+  });
+  const starter: Board = await response.json();
+  try {
+    await page.goto(`/#/boards/${starter.id}`);
+    await page.getByRole("button", { name: /일상으로 시작/ }).click();
+    await expect(page.locator("article.widget-card")).toHaveCount(4);
+    let persisted: Board = await (
+      await request.get(`/api/v1/boards/${starter.id}`)
+    ).json();
+    expect(persisted.widgets).toHaveLength(0);
+    await page
+      .getByRole("button", { name: "대시보드 저장", exact: true })
+      .click();
+    await expect(
+      page.getByText("변경 사항을 저장했습니다.", { exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.locator("article.widget-card")).toHaveCount(4);
+    persisted = await (
+      await request.get(`/api/v1/boards/${starter.id}`)
+    ).json();
+    expect(persisted.sources).toHaveLength(0);
+  } finally {
+    const current: Board = await (
+      await request.get(`/api/v1/boards/${starter.id}`)
+    ).json();
+    await request.delete(`/api/v1/boards/${starter.id}`, {
+      headers: { Origin: "http://127.0.0.1:8091" },
+      data: { revision: current.revision },
+    });
+  }
 });
