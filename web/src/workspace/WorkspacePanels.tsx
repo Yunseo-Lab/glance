@@ -247,7 +247,6 @@ export function SourcePanel({
     </>
   );
 }
-export { default as ReadingPanel } from "./ReadingInbox";
 export function SettingsPanel() {
   const { data, error, reload } = useResource<{
     entries: number;

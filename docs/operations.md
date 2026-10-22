@@ -162,3 +162,33 @@ Retry-After를 유지합니다. `/api/v1/sources`와 `/api/v1/diagnostics`는 �
 사용자가 저장한 entry와 메모·북마크는 이 보관 정리로 삭제하지 않습니다.
 운영 HTTP 서버는 미등록 Host를 거부하므로 HTTPS proxy에는 정확한
 `GLANCE_DASHBOARD_PUBLIC_URL`을 설정하고 원래 Host를 전달해야 합니다.
+
+## 최신 운영 이미지와 검사
+
+대시보드 런타임은 digest로 고정한 Distroless Debian 13이다. shell, `id`, `rm` 같은 도구가 없으므로 유지보수에는 `/app/glance dashboard ...` 명령을 사용한다. 컨테이너는 UID 10001, 읽기 전용 루트, capability 제거 상태로 검사한다. `Dockerfile.dashboard.package`는 이미 검증한 해당 Linux 아키텍처 바이너리를 포장하며, Darwin 바이너리는 Linux 이미지에 넣지 않는다. ARM64 QEMU 검증은 실제 Mac 검증을 대신하지 않는다.
+
+`dashboard prune-backups --directory backups --keep 7`은 삭제 예정 목록을 출력한다. `--apply`를 명시하면 관리 이름의 **무결성 검사가 통과한** 백업만 회전한다. 최소 2개 정상본을 보존하며 손상 파일·symlink·다른 이름의 파일은 남겨 점검하도록 한다. 디렉터리는 0700이어야 한다. Docker 백업 스크립트는 컨테이너에 7개를 남긴다. 호스트 export도 별도 보관 정책으로 회전하고 실제 원격 복제 완료를 확인한다.
+
+```sh
+./build/glance dashboard verify-backup --input backups/검증할파일.db --key-file .secrets/recovery-key
+python3 scripts/export-recovery.py --backup backups/검증할파일.db \
+  --key-file .secrets/recovery-key --db-destination /개인마운트/DB백업 \
+  --key-destination /다른개인마운트/키백업
+python3 scripts/operations-status.py --backups backups --data-directory data
+```
+
+export는 DB/key 암호화 쌍을 검증하고 서로 다른 0700 디렉터리에 0600 파일과 SHA-256 manifest를 배타적으로 생성한다. 네트워크 업로드나 클라우드 제공자 설정은 하지 않는다. 마지막 정상 export를 덮어쓰지 않는다. 실제 오프사이트 위치·암호화·다른 계정 보관과 복제 상태는 운영자가 선택하고 확인한다. DB와 키를 같은 계정의 같은 폴더에 합쳐 두지 않는다. 복구는 새 DB 경로로 수행하고 원래 키를 지정한 뒤 로그인·연결 테스트를 확인한다. 키를 잃으면 암호화된 연결을 복호화할 수 없다.
+
+운영 상태 스크립트는 정상 백업이 없거나 48시간보다 오래됐거나, 여유 공간이 1GiB 또는 전체 10%보다 적으면 경고와 종료 코드 2를 반환한다. 비밀번호·본문·연결 URL은 출력하지 않는다. 백업 작업 실패 시 이전 정상본을 보존하고 공간·권한부터 확인한다. 진단 API와 로그를 공개 채널에 올리기 전에는 보드명과 출처 등의 개인 메타데이터도 검토한다.
+
+## Mac 시작·잠자기·복구 인수
+
+Docker Desktop의 로그인 시 시작과 Compose `restart: unless-stopped`를 함께 설정한다. **로그인 전 재부팅 직후에는 Docker Desktop이 동작하지 않을 수 있다.** FileVault 해제와 사용자 로그인이 필요한 개인 Mac 환경을 서버 가동으로 착각하지 않는다. 절전 중에는 갱신과 외부 접속이 중단된다. 전원 연결 시 자동 잠자기 정책을 점검하고 실제 절전/복귀 후 준비 상태와 일정을 확인한다. 지속 가동 여부는 사용자가 에너지 설정으로 결정한다.
+
+네이티브 실행은 `deploy/glance.launchd.plist`의 절대 경로를 채우고 사용자 LaunchAgent로 설치한다. Docker 실행과 동시에 같은 DB/포트를 열지 않는다. 로그 디렉터리를 미리 만들고 private 권한·로그 회전을 설정한다. launchd 파일은 plist 구문만 이 환경에서 확인하며, `launchctl bootstrap`, 재부팅·로그인·절전 인수는 Mac에서 수행한다. 로그아웃 시 종료되는 사용자 Agent와 부팅 daemon의 차이도 실제 운영 방식에 맞춰 확인한다.
+
+현재는 Mac mini가 꺼져 있고 도메인이 없어 실제 설치·VoiceOver 음성·공인 TLS·휴대전화의 다른 네트워크 인수는 미완료다. [80단계 진행 기록](frontier-progress.md)의 F079/F080을 실제 확인 후에만 완료한다.
+
+HTTPS 프록시는 `Dockerfile.proxy`로 Caddy v2.11.7을 Go 1.27.3과 고정된 수정 의존성으로 빌드한다. 기존 공식 이미지의 오래된 Go/x/net에서 높음 등급 취약점이 확인되어 실행 바이너리를 교체했다. 원본 Apache-2.0 라이선스와 module lock은 `deploy/proxy/`에 보관한다. `compose.https.yaml`의 기본값은 `glance-proxy:local`이며 직접 빌드가 필요하다. 이전 공식 Caddy image digest를 운영값으로 계속 사용하지 않는다. 프록시 Docker 빌드도 네트워크와 CA를 유지하며 검증 우회를 사용하지 않는다.
+
+릴리스는 먼저 모든 변경을 검토·커밋한 다음 `bash scripts/build-dashboard.sh`와 `python3 scripts/package-release.py`를 실행한다. clean commit과 바이너리 VCS metadata가 다르면 포장을 거부한다. 묶음에는 대응 소스 archive, 전체 프로젝트 LICENSE, 실제 Go/npm 의존성의 LICENSE/NOTICE, 빌드 정보와 SHA256SUMS가 포함된다. 프록시도 해당 모듈에서 clean build한 후 `--name caddy --binary build/caddy --module-directory deploy/proxy --no-frontend --output release-artifacts/proxy`로 따로 포장할 수 있다. 이미지 CycloneDX SBOM과 스캔 결과는 별도 첨부한다. 운영 태그를 이동하기 전에 이전 digest와 검증된 DB/key 백업을 보존한다.

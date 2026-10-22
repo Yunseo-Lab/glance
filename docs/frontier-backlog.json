@@ -1291,11 +1291,15 @@
         "F048",
         "F064"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "f065-axe-rerun.log: 2 passed",
+        "docs/verification/accessibility.json",
+        "docs/accessibility.md"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-22T01:06:58+00:00",
-      "progress_note": "axe serious/critical·키보드/초점·접근성 트리/스크린리더·reduced motion을 확인하고 발견된 대비/이름/레이아웃 문제를 수정한다.",
+      "updated_at": "2026-10-22T01:26:52+00:00",
+      "progress_note": "대비·label/name 일치·modal 첫 초점/복귀를 수정했다. axe serious/critical 0, 키보드/AX tree/reduced motion/360px 검증과 실제 Orca 48.1 AT-SPI 브레일 출력에서 선택한 버튼/검색/필수 입력 경로를 확인했다. 음성·Mac VoiceOver 전체 인수는 별도다.",
       "started_at": "2026-10-22T01:06:58+00:00"
     },
     {
@@ -1307,9 +1311,15 @@
       "depends_on": [
         "F065"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/frontend-performance.json",
+        "web/scripts/performance-smoke.mjs"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:38:59+00:00",
+      "progress_note": "Split route/editor bundles; isolate second ticks; gzip public embedded assets. Five cold 32-card mobile runs at CPU4x/150ms/1.6Mbps: median LCP1960ms, CLS0, feedback p95155.6ms; initial JS115781B/CSS6768B gzip. This is a lab profile, not field INP or Mac acceptance.",
+      "started_at": "2026-10-22T01:26:52+00:00"
     },
     {
       "id": "F067",
@@ -1322,9 +1332,15 @@
         "F040",
         "F066"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/pwa-offline.md",
+        "web/e2e/pwa.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:45:35+00:00",
+      "progress_note": "Install manifest/PNG/SVG icons, deterministic versioned public-shell SW, explicit guarded waiting-worker activation; actual Chromium offline/cache exclusion/update tests passed. Phone/HTTPS install remains external.",
+      "started_at": "2026-10-22T01:38:59+00:00"
     },
     {
       "id": "F068",
@@ -1335,9 +1351,16 @@
       "depends_on": [
         "F067"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/pwa-offline.md",
+        "web/e2e/auth.spec.ts",
+        "web/e2e/conflicts.spec.ts"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:45:35+00:00",
+      "progress_note": "Chromium offline shell cannot return private API bodies; reconnect works, update waits for forms to close; real server session expiry preserves in-memory widget title and hides private workspace, explicit logout clears queries/drafts. Existing CAS/two-tab conflict checks retained.",
+      "started_at": "2026-10-22T01:45:35+00:00"
     },
     {
       "id": "F069",
@@ -1348,9 +1371,16 @@
       "depends_on": [
         "F068"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "web/e2e/visual.spec.ts",
+        "web/e2e/visual.spec.ts-snapshots/board-360-light-linux.png",
+        "web/e2e/visual.spec.ts-snapshots/board-1440-dark-linux.png"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:52:59+00:00",
+      "progress_note": "Six independent fixed fixtures at 360/768/1440px, light/dark, Korean wrapping, long URL and provider errors were generated, visually inspected and compared again without baseline updates. Removed dependence on mutable prior-suite board state.",
+      "started_at": "2026-10-22T01:45:35+00:00"
     },
     {
       "id": "F070",
@@ -1361,9 +1391,17 @@
       "depends_on": [
         "F069"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "web/e2e/timezones.spec.ts",
+        "web/e2e/reading.spec.ts",
+        "web/e2e/layout.spec.ts",
+        "docs/verification/frontend-performance.json"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T01:52:59+00:00",
+      "progress_note": "Five locale/date/expanded-label cases and six visual comparisons passed. Existing Korean IME composition and narrow touch reorder tests passed in the integration run; five throttled cold mobile runs meet budgets. Pseudo-translation tests expansion only; no external translation service claim.",
+      "started_at": "2026-10-22T01:52:59+00:00"
     },
     {
       "id": "F071",
@@ -1374,9 +1412,15 @@
       "depends_on": [
         "F070"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/soak-60m.json",
+        "internal/dashboard/soak_test.go"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:13:45+00:00",
+      "progress_note": "Completed actual 3600s soak: 8 clients,128 sources,10000 entries,143972 requests;0 failures,0 duplicate fetches; search p9555.686ms,board9.725ms; restart+backup restore passed. Exact tested backend commit and final trace checksum recorded.",
+      "started_at": "2026-10-22T01:52:59+00:00"
     },
     {
       "id": "F072",
@@ -1387,9 +1431,16 @@
       "depends_on": [
         "F071"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/security.json",
+        "web/e2e/visual.spec.ts",
+        "docs/accessibility.md"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:13:45+00:00",
+      "progress_note": "Go race/vet/mod checks, generated contracts and 74 browser cases passed including 6 fixed-font visual comparisons and axe. npm(all dependencies)0 findings; Go application0; patched dashboard/proxy images0 HIGH/CRITICAL. Remaining image findings and unreachable proxy module finding are explicitly recorded. Legacy configuration validation also passed.",
+      "started_at": "2026-10-22T02:13:45+00:00"
     },
     {
       "id": "F073",
@@ -1400,9 +1451,17 @@
       "depends_on": [
         "F072"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/arm64-image.json",
+        "docs/verification/https-rehearsal.json",
+        "Dockerfile.dashboard",
+        "Dockerfile.dashboard.package"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:13:45+00:00",
+      "progress_note": "Built current native CGO/FTS5 dashboard; non-root/read-only AMD64 image passed auth/assets/readiness/restart/new-volume restore. ARM64 image actual rootfs binary/libs passed QEMU FTS5/auth/readiness. Patched proxy native local-CA HTTPS passed secure-cookie/save/logout and ARM64 binary version executed in QEMU. Mac native hardware remains F079.",
+      "started_at": "2026-10-22T02:13:45+00:00"
     },
     {
       "id": "F074",
@@ -1413,9 +1472,16 @@
       "depends_on": [
         "F073"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        ".github/workflows/dashboard-ci.yaml",
+        ".github/workflows/dashboard-soak.yaml",
+        ".github/workflows/release.yaml"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:15:33+00:00",
+      "progress_note": "Implemented parsed CI gates for contracts/race/vet/all npm+Go security/browser+axe+fixed-font visual/performance/actual historical upgrade+separate-key restore/local TLS, native AMD64+ARM64 dashboard+patched-proxy container scans and SBOMs. Added scheduled actual60m soak and always-uploaded evidence. Equivalent local gates passed; remote GitHub Actions execution has not been observed here.",
+      "started_at": "2026-10-22T02:13:45+00:00"
     },
     {
       "id": "F075",
@@ -1426,9 +1492,12 @@
       "depends_on": [
         "F074"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": false
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:15:33+00:00",
+      "progress_note": "Preparing clean reviewed source commit, native CGO binaries, full third-party notices/source archives, SHA-256 manifests and image CycloneDX SBOM. Refuses dirty source/VCS mismatch.",
+      "started_at": "2026-10-22T02:15:33+00:00"
     },
     {
       "id": "F076",

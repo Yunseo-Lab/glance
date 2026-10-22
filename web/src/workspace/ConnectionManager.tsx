@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { KeyRound, Plus, ShieldCheck, Trash2, Unplug, X } from "lucide-react";
 import type { components } from "../generated/api";
@@ -195,10 +196,7 @@ function CreateConnection({
     [token, setToken] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector("input")?.focus();
-  }, []);
+  useModalDialog(dialog,'input');
   async function submit(event: React.SubmitEvent) {
     event.preventDefault();
     setError("");

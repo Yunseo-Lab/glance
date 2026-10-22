@@ -1,0 +1,10 @@
+{
+  "checked_at_utc": "2026-10-22T02:07:59.155964+00:00",
+  "online_backup": true,
+  "db_and_key_exported_to_separate_private_directories": true,
+  "pair_verified_before_export": true,
+  "restored_copy_and_key_verified": true,
+  "healthy_status": true,
+  "corrupt_newer_backup_warning": true,
+  "scope": "disposable mounted-directory simulation, no remote storage transfer or live credentials"
+}

@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import type { Capture } from "../editor/quickCapture";
@@ -17,10 +18,7 @@ export default function QuickCapture({
     [url, setURL] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector("textarea")?.focus();
-  }, []);
+  useModalDialog(dialog,'textarea');
   return (
     <dialog
       ref={dialog}

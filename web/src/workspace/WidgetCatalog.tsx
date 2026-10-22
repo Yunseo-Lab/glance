@@ -52,11 +52,13 @@ export default function WidgetCatalog({
           <button
             type="button"
             key={widget.type}
-            aria-label={`${widget.title} 선택`}
             aria-pressed={type === widget.type}
             onClick={() => onSelect(widget.type as WidgetType)}
           >
-            <strong>{widget.title}</strong>
+            <strong>
+              {widget.title}
+              <span className="sr-only"> 선택</span>
+            </strong>
             <small>{widget.description}</small>
             <span>
               {widget.capabilities.includes("local") ? (
@@ -65,7 +67,10 @@ export default function WidgetCatalog({
                 </>
               ) : (
                 <>
-                  <Cloud size={12} /> 인터넷 연결 · 개인 키 불필요
+                  <Cloud size={12} />{" "}
+                  {["github", "agenda", "json"].includes(widget.type)
+                    ? "공개 주소 또는 개인 연결"
+                    : "인터넷 연결 · 개인 키 불필요"}
                 </>
               )}
             </span>

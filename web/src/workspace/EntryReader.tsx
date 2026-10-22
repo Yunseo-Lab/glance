@@ -1,3 +1,4 @@
+import { useModalDialog } from "./useModalDialog";
 import { useEffect, useRef } from "react";
 import {
   ArrowLeft,
@@ -28,12 +29,7 @@ export default function EntryReader({
   onSave: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current
-      ?.querySelector<HTMLButtonElement>('[aria-label="읽기 창 닫기"]')
-      ?.focus();
-  }, []);
+  useModalDialog(dialog, '[aria-label="읽기 창 닫기"]');
   useEffect(() => {
     function shortcut(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
@@ -134,7 +130,7 @@ export default function EntryReader({
           onClick={onRead}
         >
           <Check size={15} />
-          {item.isRead ? "읽음" : "안 읽음"}
+          읽음
         </button>
         <button
           className="button secondary"
@@ -144,7 +140,7 @@ export default function EntryReader({
           onClick={onSave}
         >
           <Bookmark size={15} />
-          {item.isSaved ? "저장됨" : "저장"}
+          저장
         </button>
         {address && (
           <a

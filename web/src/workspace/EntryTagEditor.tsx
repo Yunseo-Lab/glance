@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 export default function EntryTagEditor({
@@ -15,10 +16,7 @@ export default function EntryTagEditor({
   const [text, setText] = useState(initial.join(", ")),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector("input")?.focus();
-  }, []);
+  useModalDialog(dialog,'input');
   return (
     <dialog
       ref={dialog}

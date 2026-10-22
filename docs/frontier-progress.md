@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-22T01:06:58+00:00
+최근 기록: 2026-10-22T02:15:33+00:00
 
-조사·설계 8/8 · 신규 구현 검증 56/72 · 진행 중 1 · 예정 13 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 66/72 · 진행 중 1 · 예정 3 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -120,3 +120,23 @@
 | 2026-10-22T01:01:19+00:00 | F064 | in_progress | 저장된 entry에서 날짜/시간대별 deterministic 브리핑을 만든다. 개수·발췌·출처를 직접 인용하고 같은 입력 데이터는 같은 fingerprint를 반환하며 외부 모델을 호출하지 않는다. |
 | 2026-10-22T01:06:58+00:00 | F064 | verified | 단일 DB 조회로 날짜/시간대별 항목·읽음/저장 개수·원문 인용을 일관되게 정리한다. 같은 데이터는 같은 fingerprint를 반환하며 외부 모델을 호출하지 않는다. DST 23/25시간·자정 전환·건너뛴 날짜, owner 격리와 UI 출처/시간대 검증 통과. |
 | 2026-10-22T01:06:58+00:00 | F065 | in_progress | axe serious/critical·키보드/초점·접근성 트리/스크린리더·reduced motion을 확인하고 발견된 대비/이름/레이아웃 문제를 수정한다. |
+| 2026-10-22T01:26:52+00:00 | F065 | verified | 대비·label/name 일치·modal 첫 초점/복귀를 수정했다. axe serious/critical 0, 키보드/AX tree/reduced motion/360px 검증과 실제 Orca 48.1 AT-SPI 브레일 출력에서 선택한 버튼/검색/필수 입력 경로를 확인했다. 음성·Mac VoiceOver 전체 인수는 별도다. |
+| 2026-10-22T01:26:52+00:00 | F066 | in_progress | 경로/편집기/위젯을 필요한 때 로딩하고 시계 외 불필요한 초당 rerender를 줄인다. 고정 32카드 mobile CPU4x/RTT150ms/1.6Mbps의 LCP/CLS/조작 지연을 실측한다. |
+| 2026-10-22T01:38:59+00:00 | F066 | verified | Split route/editor bundles; isolate second ticks; gzip public embedded assets. Five cold 32-card mobile runs at CPU4x/150ms/1.6Mbps: median LCP1960ms, CLS0, feedback p95155.6ms; initial JS115781B/CSS6768B gzip. This is a lab profile, not field INP or Mac acceptance. |
+| 2026-10-22T01:38:59+00:00 | F067 | in_progress | Implementing public app-shell-only service worker, install icons and explicit guarded version update; browser offline/privacy validation pending. |
+| 2026-10-22T01:45:35+00:00 | F067 | verified | Install manifest/PNG/SVG icons, deterministic versioned public-shell SW, explicit guarded waiting-worker activation; actual Chromium offline/cache exclusion/update tests passed. Phone/HTTPS install remains external. |
+| 2026-10-22T01:45:35+00:00 | F068 | in_progress | Rehearsed offline reload/reconnect, real auth cookie expiry and unfinished form recovery, explicit logout query/draft purge; final regression comparison running. |
+| 2026-10-22T01:45:35+00:00 | F068 | verified | Chromium offline shell cannot return private API bodies; reconnect works, update waits for forms to close; real server session expiry preserves in-memory widget title and hides private workspace, explicit logout clears queries/drafts. Existing CAS/two-tab conflict checks retained. |
+| 2026-10-22T01:45:35+00:00 | F069 | in_progress | Six fixed Seoul-clock long-Korean/provider-error screenshots generated and visually inspected; repeat comparison running. |
+| 2026-10-22T01:52:59+00:00 | F069 | verified | Six independent fixed fixtures at 360/768/1440px, light/dark, Korean wrapping, long URL and provider errors were generated, visually inspected and compared again without baseline updates. Removed dependence on mutable prior-suite board state. |
+| 2026-10-22T01:52:59+00:00 | F070 | in_progress | Seoul/UTC midnight and New York DST gap/fold, pseudo-translation expansion, IME and touch checks completed; gathering evidence. |
+| 2026-10-22T01:52:59+00:00 | F070 | verified | Five locale/date/expanded-label cases and six visual comparisons passed. Existing Korean IME composition and narrow touch reorder tests passed in the integration run; five throttled cold mobile runs meet budgets. Pseudo-translation tests expansion only; no external translation service claim. |
+| 2026-10-22T01:52:59+00:00 | F071 | in_progress | Actual 60-minute bounded 8-client/128-source/10000-entry soak is still running; no final pass claimed before completion. |
+| 2026-10-22T02:13:45+00:00 | F071 | verified | Completed actual 3600s soak: 8 clients,128 sources,10000 entries,143972 requests;0 failures,0 duplicate fetches; search p9555.686ms,board9.725ms; restart+backup restore passed. Exact tested backend commit and final trace checksum recorded. |
+| 2026-10-22T02:13:45+00:00 | F072 | in_progress | Final security/contracts/race/browser/container reports collected; completing fixed source/license packaging and proxy CI gate. |
+| 2026-10-22T02:13:45+00:00 | F072 | verified | Go race/vet/mod checks, generated contracts and 74 browser cases passed including 6 fixed-font visual comparisons and axe. npm(all dependencies)0 findings; Go application0; patched dashboard/proxy images0 HIGH/CRITICAL. Remaining image findings and unreachable proxy module finding are explicitly recorded. Legacy configuration validation also passed. |
+| 2026-10-22T02:13:45+00:00 | F073 | in_progress | Native Linux/AMD64 and cross-built CGO Linux/ARM64 candidate images, Distroless and patched proxy prepared; checking release provenance. |
+| 2026-10-22T02:13:45+00:00 | F073 | verified | Built current native CGO/FTS5 dashboard; non-root/read-only AMD64 image passed auth/assets/readiness/restart/new-volume restore. ARM64 image actual rootfs binary/libs passed QEMU FTS5/auth/readiness. Patched proxy native local-CA HTTPS passed secure-cookie/save/logout and ARM64 binary version executed in QEMU. Mac native hardware remains F079. |
+| 2026-10-22T02:13:45+00:00 | F074 | in_progress | Added race/contracts/browser/axe/visual/backup/upgrade/performance and native AMD64/ARM64 container/security jobs, weekly 60-minute soak and always-preserved evidence artifacts; checking workflow definitions. |
+| 2026-10-22T02:15:33+00:00 | F074 | verified | Implemented parsed CI gates for contracts/race/vet/all npm+Go security/browser+axe+fixed-font visual/performance/actual historical upgrade+separate-key restore/local TLS, native AMD64+ARM64 dashboard+patched-proxy container scans and SBOMs. Added scheduled actual60m soak and always-uploaded evidence. Equivalent local gates passed; remote GitHub Actions execution has not been observed here. |
+| 2026-10-22T02:15:33+00:00 | F075 | in_progress | Preparing clean reviewed source commit, native CGO binaries, full third-party notices/source archives, SHA-256 manifests and image CycloneDX SBOM. Refuses dirty source/VCS mismatch. |

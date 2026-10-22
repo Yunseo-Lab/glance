@@ -16,5 +16,5 @@ if command -v sha256sum >/dev/null; then actual=$(sha256sum "$temp/backup.db"); 
 actual=${actual%% *}
 test "$actual" = "$expected"
 ln "$temp/backup.db" "backups/$filename"
-"${compose[@]}" exec -T dashboard rm -- "/app/backups/$filename"
+"${compose[@]}" exec -T dashboard /app/glance dashboard prune-backups --directory /app/backups --keep 7 --apply
 printf 'Verified backup exported: backups/%s\n' "$filename"

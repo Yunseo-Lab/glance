@@ -6,12 +6,12 @@ test("catalog search selects a local widget and explains its requirements", asyn
   await page.getByRole("button", { name: "위젯 추가", exact: true }).click();
   await page.getByLabel("카탈로그 검색", { exact: true }).fill("메모");
   await expect(
-    page.getByRole("button", { name: "메모 선택", exact: true }),
+    page.getByRole("button", { name: "메모 선택" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "세계 시계 선택", exact: true }),
+    page.getByRole("button", { name: "세계 시계 선택" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "메모 선택", exact: true }).click();
+  await page.getByRole("button", { name: "메모 선택" }).click();
   await expect(page.getByLabel("위젯 종류", { exact: true })).toHaveValue(
     "note",
   );

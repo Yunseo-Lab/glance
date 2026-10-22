@@ -1,3 +1,4 @@
+import {useModalDialog} from "./workspace/useModalDialog";
 import type { components } from "./generated/api";
 import { useResource } from "./workspace/useResource";
 import CitySearch from "./workspace/CitySearch";
@@ -72,10 +73,7 @@ export default function WidgetEditor({
     "aria-describedby": errorField === field ? "editor-error" : undefined,
   });
 
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector<HTMLInputElement>("input")?.focus();
-  }, []);
+  useModalDialog(dialog,'input');
   function buildDraft(commit = false) {
     const next: Widget = {
       configVersion: 1,

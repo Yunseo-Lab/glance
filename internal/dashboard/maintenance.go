@@ -211,6 +211,9 @@ func maintenance(command string, args []string) int {
 	}
 	db := flags.String("db", defaultDB, "Source database (restore: new destination)")
 	output := flags.String("output", "", "New backup file")
+	directory := flags.String("directory", "backups", "Private managed backup directory")
+	keep := flags.Int("keep", 7, "Verified backups retained (minimum 2)")
+	apply := flags.Bool("apply", false, "Apply rotation; otherwise dry run")
 	input := flags.String("input", "", "Backup file to restore")
 	keyFile := flags.String("key-file", os.Getenv("GLANCE_CONNECTION_KEY_FILE"), "Existing connection encryption key file")
 	nextKey := flags.String("output-key", "", "New key file; must not exist")
@@ -227,6 +230,13 @@ func maintenance(command string, args []string) int {
 	}
 	var err error
 	switch command {
+	case "prune-backups":
+		var result backupRotation
+		result, err = pruneBackups(*directory, *keep, *apply)
+		if err == nil {
+			printRotation(result)
+			return 0
+		}
 	case "rotate-connection-key":
 		if *nextKey == "" {
 			err = errors.New("--output-key is required")
@@ -260,6 +270,9 @@ func maintenance(command string, args []string) int {
 			err = errors.New("--input is required")
 		} else {
 			err = verifyDatabase(*input)
+			if err == nil && *keyFile != "" {
+				err = verifyBackupKey(*input, *keyFile)
+			}
 		}
 	case "healthcheck":
 		var token string

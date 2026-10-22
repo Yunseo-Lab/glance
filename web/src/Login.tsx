@@ -1,3 +1,4 @@
+import SourceLink from "./workspace/SourceLink";
 import { useState } from "react";
 import { LockKeyhole, LoaderCircle } from "lucide-react";
 import { request } from "./types";
@@ -65,6 +66,9 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
           로그인
         </button>
         <small>로그인 세션은 12시간 후 만료됩니다.</small>
+        <small>
+          <SourceLink />
+        </small>
       </form>
     </main>
   );

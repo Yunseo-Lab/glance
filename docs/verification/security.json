@@ -1,0 +1,99 @@
+{
+  "scanner": "Trivy 0.76.1, downloaded upstream checksum verified",
+  "database": {
+    "Version": 2,
+    "NextUpdate": "2026-10-23T01:15:55.263770518Z",
+    "UpdatedAt": "2026-10-22T01:15:55.263770788Z",
+    "DownloadedAt": "2026-10-22T01:47:10.247376467Z"
+  },
+  "npm": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "application_go": "govulncheck, offline-generated official Go vulnerability repository: no vulnerabilities found",
+  "proxy_go": "govulncheck: 0 reachable vulnerabilities; 1 required-module finding outside imported/called code",
+  "images": [
+    {
+      "role": "replaced Debian 12 candidate",
+      "image_id": "sha256:5060e9ba11acae81c67f6648f333c164b9a23819d0fac25c75c9fa1fac28a4ae",
+      "targets": [
+        {
+          "target": "glance-dashboard:frontier-rc (debian 12.15)",
+          "counts": {
+            "LOW": 83,
+            "HIGH": 56,
+            "MEDIUM": 87,
+            "UNKNOWN": 1,
+            "CRITICAL": 1
+          }
+        },
+        {
+          "target": "app/glance",
+          "counts": {}
+        }
+      ],
+      "report_sha256": "646d4095acd787c6a8e810d6d4529acede367726d1c2cab95afe6a43c1018a68"
+    },
+    {
+      "role": "Distroless dashboard candidate",
+      "image_id": "sha256:21d04d4b00050ac5ba3f0a68ca4071ba1ce51cba4264282341474a3b9ae30bb0",
+      "targets": [
+        {
+          "target": "glance-dashboard:frontier-rc (debian 13.7)",
+          "counts": {
+            "MEDIUM": 15,
+            "LOW": 8
+          }
+        },
+        {
+          "target": "app/glance",
+          "counts": {}
+        }
+      ],
+      "report_sha256": "f1dfd9f47a78ce0177acc7ee6adc5b39d6c15dc4085f0d8f38ebe64a0c085bba"
+    },
+    {
+      "role": "replaced official proxy candidate",
+      "image_id": "sha256:3067cc4e02c091399edbd5d65f85a3ff4d511574aecadb47f280c3761e68852e",
+      "targets": [
+        {
+          "target": "caddy:2-alpine (alpine 3.23.7)",
+          "counts": {}
+        },
+        {
+          "target": "usr/bin/caddy",
+          "counts": {
+            "UNKNOWN": 1,
+            "HIGH": 5,
+            "MEDIUM": 13,
+            "LOW": 1
+          }
+        }
+      ],
+      "report_sha256": "14e2ee391c2fec89d36c0a620bd4b9dee0a1d69829d681c0ca3a7a9272210007"
+    },
+    {
+      "role": "patched proxy candidate",
+      "image_id": "sha256:8433d2c6b6251f65e7aa860b7847bbe9b1a6120866d0ab2c5ea60fbf2e0c33c0",
+      "targets": [
+        {
+          "target": "glance-proxy:frontier-rc (alpine 3.23.7)",
+          "counts": {}
+        },
+        {
+          "target": "usr/bin/caddy",
+          "counts": {
+            "UNKNOWN": 1
+          }
+        }
+      ],
+      "report_sha256": "ee6369fba464b93eb839e657631809ffa23bab8d2b7cea99749d28f6bd231a42"
+    }
+  ],
+  "policy": "Fail on every HIGH/CRITICAL finding, including unfixed; remaining MEDIUM/LOW/UNKNOWN recorded, not claimed absent",
+  "network": "Default GCR DB mirror forbidden; official GHCR database succeeded. Three public source module archives recovered from exact GitHub tags, reconstructed with x/mod/zip and verified by normal Go sumdb; no TLS/checksum bypass."
+}

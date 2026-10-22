@@ -1,0 +1,15 @@
+{
+  "image_id": "sha256:befaaf0dd59af433c7dff83a2b57bf3414686111424568cd467537b59a2a63af",
+  "architecture": "arm64",
+  "execution": "QEMU user-mode with actual image rootfs libraries; not hardware",
+  "binary_sha256": "3956ca8b3520c9b76c70017240629f1dc171776e5dfff455bbd5da64f381e810",
+  "fts5": true,
+  "readiness": true,
+  "owner_api": true,
+  "anonymous_api_rejected": true,
+  "sqlite": {
+    "fts5": true,
+    "searchTokenizer": "trigram",
+    "sqliteVersion": "3.53.4"
+  }
+}

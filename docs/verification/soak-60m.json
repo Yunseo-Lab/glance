@@ -1,0 +1,421 @@
+{
+  "seconds": 3600.061030387,
+  "clients": 8,
+  "sources": 128,
+  "entries": 10000,
+  "requests": 143972,
+  "failures": 0,
+  "expected_refresh_429": 13798,
+  "provider_fetches": 1395,
+  "duplicate_fetches": 0,
+  "latency": {
+    "board": {
+      "count": 14397,
+      "p50_ms": 1.705,
+      "p95_ms": 9.725,
+      "max_ms": 79.476
+    },
+    "brief": {
+      "count": 14397,
+      "p50_ms": 63.471,
+      "p95_ms": 130.162,
+      "max_ms": 515.776
+    },
+    "diagnostics": {
+      "count": 14398,
+      "p50_ms": 19.523,
+      "p95_ms": 42.128,
+      "max_ms": 174.883
+    },
+    "refresh": {
+      "count": 14398,
+      "p50_ms": 2.326,
+      "p95_ms": 11.821,
+      "max_ms": 69.43
+    },
+    "search": {
+      "count": 57586,
+      "p50_ms": 24.167,
+      "p95_ms": 55.686,
+      "max_ms": 310.79
+    },
+    "snapshots": {
+      "count": 14399,
+      "p50_ms": 7.455,
+      "p95_ms": 20.508,
+      "max_ms": 110.873
+    },
+    "state": {
+      "count": 14397,
+      "p50_ms": 1.987,
+      "p95_ms": 10.864,
+      "max_ms": 80.75
+    }
+  },
+  "memory": [
+    {
+      "second": 60,
+      "rss_bytes": 59187200,
+      "heap_bytes": 1566488,
+      "goroutines": 36
+    },
+    {
+      "second": 120,
+      "rss_bytes": 56590336,
+      "heap_bytes": 1850816,
+      "goroutines": 45
+    },
+    {
+      "second": 180,
+      "rss_bytes": 58830848,
+      "heap_bytes": 2077816,
+      "goroutines": 41
+    },
+    {
+      "second": 240,
+      "rss_bytes": 61554688,
+      "heap_bytes": 2293728,
+      "goroutines": 30
+    },
+    {
+      "second": 300,
+      "rss_bytes": 59674624,
+      "heap_bytes": 2859520,
+      "goroutines": 32
+    },
+    {
+      "second": 360,
+      "rss_bytes": 59314176,
+      "heap_bytes": 2060560,
+      "goroutines": 43
+    },
+    {
+      "second": 420,
+      "rss_bytes": 61255680,
+      "heap_bytes": 2527616,
+      "goroutines": 39
+    },
+    {
+      "second": 480,
+      "rss_bytes": 62722048,
+      "heap_bytes": 1690576,
+      "goroutines": 34
+    },
+    {
+      "second": 540,
+      "rss_bytes": 66269184,
+      "heap_bytes": 2009352,
+      "goroutines": 39
+    },
+    {
+      "second": 600,
+      "rss_bytes": 61599744,
+      "heap_bytes": 1801768,
+      "goroutines": 38
+    },
+    {
+      "second": 660,
+      "rss_bytes": 63270912,
+      "heap_bytes": 1762952,
+      "goroutines": 37
+    },
+    {
+      "second": 720,
+      "rss_bytes": 61792256,
+      "heap_bytes": 1741400,
+      "goroutines": 41
+    },
+    {
+      "second": 780,
+      "rss_bytes": 64987136,
+      "heap_bytes": 1875856,
+      "goroutines": 39
+    },
+    {
+      "second": 840,
+      "rss_bytes": 69509120,
+      "heap_bytes": 1958736,
+      "goroutines": 38
+    },
+    {
+      "second": 900,
+      "rss_bytes": 68562944,
+      "heap_bytes": 2159984,
+      "goroutines": 39
+    },
+    {
+      "second": 960,
+      "rss_bytes": 67596288,
+      "heap_bytes": 1982392,
+      "goroutines": 40
+    },
+    {
+      "second": 1020,
+      "rss_bytes": 65859584,
+      "heap_bytes": 2895968,
+      "goroutines": 35
+    },
+    {
+      "second": 1080,
+      "rss_bytes": 66977792,
+      "heap_bytes": 2839432,
+      "goroutines": 35
+    },
+    {
+      "second": 1140,
+      "rss_bytes": 68268032,
+      "heap_bytes": 2291752,
+      "goroutines": 28
+    },
+    {
+      "second": 1200,
+      "rss_bytes": 66322432,
+      "heap_bytes": 1931888,
+      "goroutines": 36
+    },
+    {
+      "second": 1260,
+      "rss_bytes": 65757184,
+      "heap_bytes": 1928680,
+      "goroutines": 38
+    },
+    {
+      "second": 1320,
+      "rss_bytes": 65794048,
+      "heap_bytes": 2123824,
+      "goroutines": 34
+    },
+    {
+      "second": 1380,
+      "rss_bytes": 68481024,
+      "heap_bytes": 2648792,
+      "goroutines": 34
+    },
+    {
+      "second": 1440,
+      "rss_bytes": 68296704,
+      "heap_bytes": 2438088,
+      "goroutines": 40
+    },
+    {
+      "second": 1500,
+      "rss_bytes": 66027520,
+      "heap_bytes": 2458920,
+      "goroutines": 44
+    },
+    {
+      "second": 1560,
+      "rss_bytes": 64471040,
+      "heap_bytes": 1942056,
+      "goroutines": 38
+    },
+    {
+      "second": 1620,
+      "rss_bytes": 63938560,
+      "heap_bytes": 3032672,
+      "goroutines": 35
+    },
+    {
+      "second": 1680,
+      "rss_bytes": 63942656,
+      "heap_bytes": 2787136,
+      "goroutines": 31
+    },
+    {
+      "second": 1740,
+      "rss_bytes": 66748416,
+      "heap_bytes": 2753936,
+      "goroutines": 35
+    },
+    {
+      "second": 1800,
+      "rss_bytes": 64471040,
+      "heap_bytes": 2574760,
+      "goroutines": 33
+    },
+    {
+      "second": 1860,
+      "rss_bytes": 65069056,
+      "heap_bytes": 3293976,
+      "goroutines": 44
+    },
+    {
+      "second": 1920,
+      "rss_bytes": 67485696,
+      "heap_bytes": 3094440,
+      "goroutines": 39
+    },
+    {
+      "second": 1980,
+      "rss_bytes": 64413696,
+      "heap_bytes": 2713760,
+      "goroutines": 44
+    },
+    {
+      "second": 2040,
+      "rss_bytes": 66981888,
+      "heap_bytes": 2481784,
+      "goroutines": 44
+    },
+    {
+      "second": 2100,
+      "rss_bytes": 70582272,
+      "heap_bytes": 3109752,
+      "goroutines": 42
+    },
+    {
+      "second": 2160,
+      "rss_bytes": 68300800,
+      "heap_bytes": 2283608,
+      "goroutines": 44
+    },
+    {
+      "second": 2220,
+      "rss_bytes": 72122368,
+      "heap_bytes": 3009776,
+      "goroutines": 43
+    },
+    {
+      "second": 2280,
+      "rss_bytes": 71503872,
+      "heap_bytes": 2539456,
+      "goroutines": 41
+    },
+    {
+      "second": 2340,
+      "rss_bytes": 71794688,
+      "heap_bytes": 2955704,
+      "goroutines": 43
+    },
+    {
+      "second": 2400,
+      "rss_bytes": 69369856,
+      "heap_bytes": 3266320,
+      "goroutines": 43
+    },
+    {
+      "second": 2460,
+      "rss_bytes": 72060928,
+      "heap_bytes": 3397144,
+      "goroutines": 39
+    },
+    {
+      "second": 2520,
+      "rss_bytes": 69926912,
+      "heap_bytes": 3660280,
+      "goroutines": 36
+    },
+    {
+      "second": 2580,
+      "rss_bytes": 74702848,
+      "heap_bytes": 2980752,
+      "goroutines": 45
+    },
+    {
+      "second": 2640,
+      "rss_bytes": 69341184,
+      "heap_bytes": 3278600,
+      "goroutines": 41
+    },
+    {
+      "second": 2700,
+      "rss_bytes": 69582848,
+      "heap_bytes": 3018344,
+      "goroutines": 35
+    },
+    {
+      "second": 2760,
+      "rss_bytes": 67039232,
+      "heap_bytes": 4485456,
+      "goroutines": 41
+    },
+    {
+      "second": 2820,
+      "rss_bytes": 74137600,
+      "heap_bytes": 2614568,
+      "goroutines": 38
+    },
+    {
+      "second": 2880,
+      "rss_bytes": 69804032,
+      "heap_bytes": 2705008,
+      "goroutines": 39
+    },
+    {
+      "second": 2940,
+      "rss_bytes": 72163328,
+      "heap_bytes": 2650712,
+      "goroutines": 38
+    },
+    {
+      "second": 3000,
+      "rss_bytes": 71913472,
+      "heap_bytes": 2783648,
+      "goroutines": 40
+    },
+    {
+      "second": 3060,
+      "rss_bytes": 70586368,
+      "heap_bytes": 3560416,
+      "goroutines": 39
+    },
+    {
+      "second": 3120,
+      "rss_bytes": 69001216,
+      "heap_bytes": 3686936,
+      "goroutines": 41
+    },
+    {
+      "second": 3180,
+      "rss_bytes": 66387968,
+      "heap_bytes": 4047240,
+      "goroutines": 45
+    },
+    {
+      "second": 3240,
+      "rss_bytes": 69517312,
+      "heap_bytes": 2897104,
+      "goroutines": 41
+    },
+    {
+      "second": 3300,
+      "rss_bytes": 72024064,
+      "heap_bytes": 3130768,
+      "goroutines": 43
+    },
+    {
+      "second": 3360,
+      "rss_bytes": 71344128,
+      "heap_bytes": 3497904,
+      "goroutines": 39
+    },
+    {
+      "second": 3420,
+      "rss_bytes": 68734976,
+      "heap_bytes": 3838816,
+      "goroutines": 43
+    },
+    {
+      "second": 3480,
+      "rss_bytes": 72663040,
+      "heap_bytes": 2943184,
+      "goroutines": 32
+    },
+    {
+      "second": 3540,
+      "rss_bytes": 71729152,
+      "heap_bytes": 4790896,
+      "goroutines": 34
+    },
+    {
+      "second": 3600,
+      "rss_bytes": 72421376,
+      "heap_bytes": 4853072,
+      "goroutines": 14
+    }
+  ],
+  "restart_restore": true,
+  "backend_source_commit": "40a1114",
+  "scope": "Actual 60-minute mock-provider HTTP workload; excludes live credentials and hardware. Subsequent changes are static serving, modal lifecycle and maintenance CLI, separately regression tested.",
+  "log_sha256": "cf96416b0e83a1376f4fc19a9ce8f3c947b7aa490e688f367dfd8407d878da84"
+}

@@ -41,7 +41,7 @@ test("cycle 02: cancel and home navigation preserve or explicitly discard edits"
     "버리지 않을 이름",
   );
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("link", { name: "Glance 홈" }).click();
+  await page.getByRole("link", { name: /glance.*홈/i }).click();
   await expect(page.getByLabel("대시보드 이름")).toHaveValue(
     "버리지 않을 이름",
   );

@@ -157,3 +157,34 @@ test("logout removes private query responses and a new login fetches current con
   ).toBeVisible();
   expect(reads).toBeGreaterThan(0);
 });
+
+test("session expiry hides private content and retains an unfinished widget form only in memory", async ({
+  page,
+}) => {
+  await page.goto(origin);
+  await page.getByLabel("비밀번호", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await page.getByRole("button", { name: "위젯 추가", exact: true }).click();
+  await page.getByLabel("위젯 종류", { exact: true }).selectOption("note");
+  await page
+    .getByLabel("제목", { exact: true })
+    .fill("아직 저장하지 않은 제목");
+  await page.context().clearCookies();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(
+    page.getByRole("heading", { name: "나의 공간에 로그인" }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "오늘도, 한눈에." }),
+  ).toBeHidden();
+  expect(
+    await page.evaluate(() => JSON.stringify({ ...localStorage })),
+  ).not.toContain("아직 저장하지 않은 제목");
+  await page.getByLabel("비밀번호", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(page.getByLabel("제목", { exact: true })).toHaveValue(
+    "아직 저장하지 않은 제목",
+  );
+  await expect(page.getByRole("dialog")).toBeVisible();
+});

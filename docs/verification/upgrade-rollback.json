@@ -1,0 +1,12 @@
+{
+  "historical_source_commit": "0a376f9",
+  "old_binary_sha256": "87bc4e97e5741bbe1c93a80c2a98451644b89566732414c6ae322b4afbe0ad65",
+  "new_binary_sha256": "80356662610568a9c50b9a2f2f632ebb4cf0a5ec39e97061a509c7cf71f31a3f",
+  "from_schema": 1,
+  "to_schema": 12,
+  "fixture": "real v1 server writes three local widgets, Unicode text and bookmarks; no credentials or upstream calls",
+  "document_ids_and_config_preserved": true,
+  "automatic_pre_upgrade_backup_verified": true,
+  "old_binary_refuses_new_schema_without_data_change": true,
+  "old_binary_with_restored_old_database": true
+}

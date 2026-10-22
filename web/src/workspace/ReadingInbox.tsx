@@ -467,7 +467,7 @@ export default function ReadingInbox({
                   }
                 >
                   <Check size={14} />
-                  {item.isRead ? "읽음" : "안 읽음"}
+                  {item.isRead ? "안 읽음으로" : "읽음으로"}
                 </button>
                 <button
                   className="button secondary"
@@ -483,7 +483,7 @@ export default function ReadingInbox({
                   ) : (
                     <Bookmark size={14} />
                   )}{" "}
-                  {item.isSaved ? "저장됨" : "저장"}
+                  {item.isSaved ? "저장 해제" : "저장"}
                 </button>
                 <button
                   className="button secondary"

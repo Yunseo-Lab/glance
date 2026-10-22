@@ -25,7 +25,17 @@ export async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(path, options);
+  let response: Response;
+  try {
+    response = await fetch(path, options);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError")
+      throw error;
+    throw new ApiError(
+      "서버에 연결할 수 없습니다. 네트워크와 서버 상태를 확인하세요.",
+      0,
+    );
+  }
   if (
     response.status === 401 &&
     path !== "/api/v1/auth/login" &&

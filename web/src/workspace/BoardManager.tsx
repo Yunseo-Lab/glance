@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { Copy, Plus, Trash2, X } from "lucide-react";
 import { request, type Board } from "../types";
@@ -20,10 +21,7 @@ export default function BoardManager({
     [names, setNames] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  useEffect(() => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector("input")?.focus();
-  }, []);
+  useModalDialog(dialog,'input');
   async function act(work: () => Promise<void>) {
     setBusy(true);
     setError("");

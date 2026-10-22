@@ -1,6 +1,6 @@
 import SafeMarkdown from "./workspace/SafeMarkdown";
 import type { components } from "./generated/api";
-import { useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -79,51 +79,62 @@ interface WidgetProps {
   snapshot?: Snapshot;
   now: Date;
 }
+function ClockWidget({ widget }: WidgetProps) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    let timer: number;
+    const tick = () => {
+      setNow(new Date());
+      timer = window.setTimeout(tick, 1000 - (Date.now() % 1000));
+    };
+    timer = window.setTimeout(tick, 1000 - (Date.now() % 1000));
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <div className="clock-view">
+      <span className="eyebrow">
+        {widget.config.timezone?.replaceAll("_", " ")}
+      </span>
+      <div className="clock-time">
+        {new Intl.DateTimeFormat("en-GB", {
+          timeZone: widget.config.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(now)}
+        <span>
+          {new Intl.DateTimeFormat("en-GB", {
+            timeZone: widget.config.timezone,
+            second: "2-digit",
+          }).format(now)}
+        </span>
+      </div>
+      <p>
+        {new Intl.DateTimeFormat("ko-KR", {
+          timeZone: widget.config.timezone,
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        }).format(now)}
+      </p>
+      <div className="clock-decoration" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+    </div>
+  );
+}
 const renderers: Record<
   Widget["type"],
   (props: WidgetProps) => React.ReactNode
 > = {
-  clock: ({ widget, snapshot, now }) => {
-    return (
-      <div className="clock-view">
-        <span className="eyebrow">
-          {widget.config.timezone?.replaceAll("_", " ")}
-        </span>
-        <div className="clock-time">
-          {new Intl.DateTimeFormat("en-GB", {
-            timeZone: widget.config.timezone,
-            hour: "2-digit",
-            minute: "2-digit",
-            hourCycle: "h23",
-          }).format(now)}
-          <span>
-            {new Intl.DateTimeFormat("en-GB", {
-              timeZone: widget.config.timezone,
-              second: "2-digit",
-            }).format(now)}
-          </span>
-        </div>
-        <p>
-          {new Intl.DateTimeFormat("ko-KR", {
-            timeZone: widget.config.timezone,
-            month: "long",
-            day: "numeric",
-            weekday: "long",
-          }).format(now)}
-        </p>
-        <div className="clock-decoration" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-    );
-  },
+  clock: (props) => <ClockWidget {...props} />,
   calendar: ({ widget, snapshot, now }) => {
     return <Calendar now={now} />;
   },
@@ -336,6 +347,13 @@ const renderers: Record<
     }
   },
 };
-export default function WidgetView(props: WidgetProps) {
-  return renderers[props.widget.type](props);
-}
+export default memo(
+  function WidgetView(props: WidgetProps) {
+    return renderers[props.widget.type](props);
+  },
+  (a, b) =>
+    a.widget === b.widget &&
+    a.snapshot === b.snapshot &&
+    (a.widget.type !== "calendar" ||
+      a.now.toDateString() === b.now.toDateString()),
+);

@@ -1,0 +1,6 @@
+*
+!deploy/
+!deploy/proxy/
+!deploy/proxy/go.mod
+!deploy/proxy/go.sum
+!deploy/proxy/main.go

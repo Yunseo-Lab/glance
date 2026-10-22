@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { Command, Search, X } from "lucide-react";
 import type { Board } from "../types";
@@ -50,9 +51,7 @@ export default function CommandPalette({
     onClose();
     requestAnimationFrame(command.run);
   };
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
+  useModalDialog(dialog,'input');
   useEffect(() => {
     document
       .getElementById(`command-option-${active}`)

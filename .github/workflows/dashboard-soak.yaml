@@ -1,0 +1,29 @@
+name: Dashboard sustained concurrency
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+permissions:
+  contents: read
+jobs:
+  soak:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: npm --prefix web ci && npm --prefix web run build
+      - shell: bash
+        run: |
+          set -euo pipefail
+          GLANCE_SOAK_DURATION=60m go test -tags sqlite_fts5 ./internal/dashboard -run '^TestDashboardSoak$' -count=1 -timeout=70m -v | tee soak.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sustained-concurrency-evidence
+          path: soak.log

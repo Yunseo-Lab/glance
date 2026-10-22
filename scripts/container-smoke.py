@@ -64,7 +64,7 @@ with tempfile.TemporaryDirectory(prefix="glance-smoke-") as temporary:
             docker("volume", "create", volume)
         name = prefix + "-app"
         base = start(name, volumes[0])
-        assert docker("exec", name, "id", "-u") == "10001"
+        assert docker("top", name, "-eo", "pid,uid").splitlines()[1].split()[1] == "10001"
         try:
             api(client(), base, "/api/v1/dashboard")
             raise AssertionError("anonymous dashboard access was allowed")

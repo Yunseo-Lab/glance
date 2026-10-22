@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+# Packages a binary built and tested for the target Linux architecture.
+FROM gcr.io/distroless/base-debian13:nonroot@sha256:6c591b4ac789b683ab3665327181e7cfb7a39b5834f42dcb73d7becb8d18a5d9
+ARG BINARY=build/glance
+WORKDIR /app
+COPY --chmod=0555 ${BINARY} /app/glance
+COPY --chown=10001:10001 --chmod=0700 deploy/empty/ /app/data/
+COPY --chown=10001:10001 --chmod=0700 deploy/empty/ /app/backups/
+USER 10001:10001
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 CMD ["/app/glance", "dashboard", "healthcheck"]
+ENTRYPOINT ["/app/glance"]
+CMD ["dashboard", "--listen", "0.0.0.0:8080", "--db", "/app/data/dashboard.db"]

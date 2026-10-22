@@ -154,6 +154,10 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 	})
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { apiError(w, 404, "API를 찾을 수 없습니다") })
 	assets, assetErr := fs.Sub(webFiles, "ui/dist")
+	var static http.Handler
+	if assetErr == nil {
+		static = compressedStatic(assets)
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
@@ -164,7 +168,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 			http.Error(w, "Dashboard UI is not built. Run: cd web && npm ci && npm run build", 503)
 			return
 		}
-		if r.URL.Path != "/" && !strings.HasPrefix(r.URL.Path, "/assets/") {
+		if !publicShellPath(r.URL.Path) {
 			http.NotFound(w, r)
 			return
 		}
@@ -172,7 +176,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 		if strings.HasPrefix(r.URL.Path, "/assets/") {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
-		http.FileServer(http.FS(assets)).ServeHTTP(w, r)
+		static.ServeHTTP(w, r)
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -185,7 +189,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
-		public := r.URL.Path == "/" || strings.HasPrefix(r.URL.Path, "/assets/") || r.URL.Path == "/api/v1/auth/session" || r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/auth/logout"
+		public := publicShellPath(r.URL.Path) || r.URL.Path == "/api/v1/auth/session" || r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/auth/logout"
 		if !public && !auth.authenticated(r) {
 			apiError(w, 401, "로그인이 필요합니다.")
 			return
@@ -197,7 +201,7 @@ func NewHandler(store *Store, runtime *Runtime, token string) http.Handler {
 func Run(args []string) int {
 	if len(args) > 0 {
 		switch args[0] {
-		case "backup", "restore", "verify-backup", "healthcheck", "rotate-connection-key":
+		case "backup", "restore", "verify-backup", "healthcheck", "rotate-connection-key", "prune-backups":
 			return maintenance(args[0], args[1:])
 		}
 	}

@@ -1,3 +1,4 @@
+import {useModalDialog} from "./useModalDialog";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { request } from "../types";
@@ -16,9 +17,7 @@ export default function OPMLImporter({
     [selected, setSelected] = useState<Set<string>>(new Set()),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
+  useModalDialog(dialog,'input');
   async function load(file: File) {
     setError("");
     setPreview(undefined);

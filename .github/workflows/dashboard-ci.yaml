@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24.19.0'
@@ -29,17 +31,70 @@ jobs:
       - run: go build -tags sqlite_fts5 -o build/glance .
       - run: cd web && npx playwright install --with-deps chromium
       - run: npm --prefix web run test:e2e
-      - run: npm --prefix web audit --omit=dev
+      - run: node web/scripts/performance-smoke.mjs
+      - run: npm --prefix web audit
       - run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
       - run: govulncheck -tags sqlite_fts5 ./...
+      - name: Patched proxy and local HTTPS/key recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd deploy/proxy && go mod verify && CGO_ENABLED=0 go build -mod=readonly -trimpath -o ../../build/caddy . && govulncheck ./...)
+          python3 scripts/rehearse-https.py
+          python3 scripts/rehearse-recovery.py
+      - name: One-minute bounded concurrency regression
+        run: GLANCE_SOAK_DURATION=60s go test -tags sqlite_fts5 ./internal/dashboard -run '^TestDashboardSoak$' -count=1 -timeout=5m -v
+      - name: Historical binary upgrade and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          old_source="$RUNNER_TEMP/glance-v1"
+          mkdir -p "$old_source"
+          git archive 0a376f9 | tar -x -C "$old_source"
+          cp -R internal/dashboard/ui/dist "$old_source/internal/dashboard/ui/"
+          (cd "$old_source" && go build -buildvcs=false -tags sqlite_fts5 -o "$RUNNER_TEMP/glance-v1-binary" .)
+          python3 scripts/rehearse-upgrade.py --old-binary "$RUNNER_TEMP/glance-v1-binary"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: browser-failure-details
-          path: web/test-results/
+          path: |
+            web/test-results/
+            docs/verification/upgrade-rollback.json
+            docs/verification/frontend-performance.json
+            docs/verification/https-rehearsal.json
+            docs/verification/backup-recovery.json
   container:
-    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - run: docker build -f Dockerfile.dashboard -t glance-dashboard:ci .
       - run: bash scripts/container-smoke.sh glance-dashboard:ci
+      - run: docker build -f Dockerfile.proxy -t glance-proxy:ci .
+      - name: Install checksum-verified Trivy
+        shell: bash
+        run: |
+          set -euo pipefail
+          scanner_arch=64bit
+          if [ "$(uname -m)" = aarch64 ]; then scanner_arch=ARM64; fi
+          scanner_file="trivy_0.76.1_Linux-${scanner_arch}.tar.gz"
+          curl --fail --location --output "$scanner_file" "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/$scanner_file"
+          curl --fail --location --output checksums.txt https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_checksums.txt
+          awk -v filename="$scanner_file" '$2 == filename' checksums.txt | sha256sum --check --strict
+          tar -xzf "$scanner_file" trivy
+      - run: ./trivy image --db-repository ghcr.io/aquasecurity/trivy-db:2 --scanners vuln --format json --output image-vulnerabilities.json --severity HIGH,CRITICAL --exit-code 1 glance-dashboard:ci
+      - run: ./trivy image --skip-db-update --format cyclonedx --output image.cdx.json glance-dashboard:ci
+      - run: ./trivy image --skip-db-update --scanners vuln --format json --output proxy-vulnerabilities.json --severity HIGH,CRITICAL --exit-code 1 glance-proxy:ci
+      - run: ./trivy image --skip-db-update --format cyclonedx --output proxy.cdx.json glance-proxy:ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-evidence-${{ matrix.runner }}
+          path: |
+            image-vulnerabilities.json
+            image.cdx.json
+            proxy-vulnerabilities.json
+            proxy.cdx.json

@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-14]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -19,18 +19,8 @@ jobs:
           go-version-file: go.mod
       - run: bash scripts/build-dashboard.sh
       - run: go test -tags sqlite_fts5 ./...
-      - name: Package native binary and checksum
-        shell: bash
-        run: |
-          set -euo pipefail
-          platform="$(go env GOOS)-$(go env GOARCH)"
-          mkdir -p release-artifacts
-          tar -czf "release-artifacts/glance-${platform}.tar.gz" -C build glance
-          if command -v sha256sum >/dev/null; then
-            (cd release-artifacts && sha256sum *.tar.gz > SHA256SUMS)
-          else
-            (cd release-artifacts && shasum -a 256 *.tar.gz > SHA256SUMS)
-          fi
+      - name: Package native binary, corresponding source and provenance
+        run: python3 scripts/package-release.py
       - uses: actions/upload-artifact@v4
         with:
           name: personal-dashboard-${{ runner.os }}-${{ runner.arch }}

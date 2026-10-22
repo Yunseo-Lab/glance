@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-22",
+  "axe": "4.14.0",
+  "cases": [
+    {
+      "case": "settings",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "brief",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "login",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "connection-dialog",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "capture",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "board",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "boards",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "dark-board",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "inbox",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "widget-editor",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "sources",
+      "serious_critical": 0,
+      "other_findings": []
+    },
+    {
+      "case": "mobile-board",
+      "serious_critical": 0,
+      "other_findings": []
+    }
+  ],
+  "keyboard": "skip link, dialog input focus and return, Escape, AX tree names/roles, reduced motion and 360px overflow passed",
+  "screen_reader": {
+    "name": "Orca",
+    "version": "48.1",
+    "bridge": "AT-SPI2 2.56.2 with headed Chromium",
+    "output": "actual braille monitor output; audio synthesis disabled",
+    "braille_samples": [
+      "'Translate this page? alert This dialog is not currently focused. Press Alt-Shift A to focus this dialog.'",
+      "'Translate this page? alert This dialog is not currently focused. Press Alt-Shift A to focus this dialog.'",
+      "'Finished loading Glance — 나의 대시보드.'",
+      "' '",
+      "'편집 button'",
+      "' 다른 위젯은 바로 사용할 수 있습니다.'",
+      "'위젯 추가'",
+      "'Focus mode'",
+      "'명령 팔레트 열기 button Ctrl / ⌘ K'",
+      "'Browse mode'",
+      "'필요한 만큼만, 나답게.glance. footer'",
+      "'카탈로그 검색  $l'",
+      "'Focus mode'",
+      "'제목 스크린리더 검사 메모 $l required'",
+      "'제목 스크린리더 검사 메모 $l required'",
+      "'제목 스크린리더 검사 메모 $l required'"
+    ],
+    "raw_debug_sha256": "b9fabb0c48c0a04669b207d8abad3cde17364c05b1af3e9b4f92d7e9c3638cba",
+    "harness_note": "Official Debian packages extracted under workspace; local launcher ignores orphan zombie PIDs in this container. Reader engine unchanged."
+  },
+  "limits": [
+    "No WCAG conformance claim from axe alone",
+    "Native Mac VoiceOver and actual phone acceptance remain F079/F080"
+  ]
+}
