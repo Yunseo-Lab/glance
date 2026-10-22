@@ -12,3 +12,5 @@
 /.env
 /backups/
 /release-artifacts/
+__pycache__/
+*.py[cod]
