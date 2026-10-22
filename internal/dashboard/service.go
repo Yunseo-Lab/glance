@@ -3,6 +3,8 @@ package dashboard
 import (
 	"errors"
 	"log"
+	"sync"
+	"time"
 )
 
 var ErrNotFound = errors.New("대상을 찾을 수 없습니다")
@@ -10,9 +12,11 @@ var ErrNotFound = errors.New("대상을 찾을 수 없습니다")
 // DashboardService owns application operations. HTTP is an adapter, not the
 // owner of persistence, validation or source-refresh policy.
 type DashboardService struct {
-	providers *Providers
-	store     *Store
-	runtime   *Runtime
+	geoMu      sync.Mutex
+	geoQueries []time.Time
+	providers  *Providers
+	store      *Store
+	runtime    *Runtime
 }
 
 func (s *DashboardService) Board(id string) (Board, error) {
@@ -42,7 +46,11 @@ func (s *DashboardService) Snapshots(id string) (map[string]Snapshot, error) {
 		if err != nil {
 			return nil, err
 		}
-		snapshot.ManualRefreshAfter, err = s.store.nextManualRefresh(sourceKey(source))
+		key, keyErr := s.store.cacheKey(source)
+		if keyErr != nil {
+			return nil, keyErr
+		}
+		snapshot.ManualRefreshAfter, err = s.store.nextManualRefresh(key)
 		if err != nil {
 			return nil, err
 		}

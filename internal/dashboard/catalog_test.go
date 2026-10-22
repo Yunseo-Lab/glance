@@ -27,7 +27,7 @@ func TestCatalogPreservesLegacyWidgetAndProviderContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	catalog := Catalog()
-	if len(catalog.Widgets) != 6 || len(catalog.Providers) != 2 {
+	if len(catalog.Widgets) < 6 || len(catalog.Providers) < 2 {
 		t.Fatal("missing legacy definition")
 	}
 	for _, widget := range board.Widgets {

@@ -82,6 +82,31 @@
       }
     },
     {
+      "type": "github",
+      "title": "GitHub",
+      "description": "저장소·릴리스·열린 이슈와 PR",
+      "configVersion": 1,
+      "sourceType": "github",
+      "capabilities": [
+        "remote",
+        "reading"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "type": "note",
       "title": "메모",
       "description": "오늘 기억할 내용을 내 서버에 보관",
@@ -148,6 +173,38 @@
   ],
   "providers": [
     {
+      "type": "github",
+      "title": "GitHub 저장소",
+      "configVersion": 1,
+      "freshForSeconds": 600,
+      "capabilities": [
+        "public-https"
+      ],
+      "configSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "repository": {
+            "maxLength": 140,
+            "type": "string"
+          },
+          "view": {
+            "enum": [
+              "repository",
+              "releases",
+              "issues",
+              "pulls"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "view"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "type": "rss",
       "title": "공개 RSS·Atom",
       "configVersion": 1,
@@ -193,6 +250,17 @@
             "maximum": 180,
             "minimum": -180,
             "type": "number"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "units": {
+            "enum": [
+              "celsius",
+              "fahrenheit"
+            ],
+            "type": "string"
           }
         },
         "required": [

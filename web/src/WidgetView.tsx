@@ -168,6 +168,7 @@ const renderers: Record<
       </div>
     );
   },
+  github: (props) => renderers.rss(props),
   rss: ({ widget, snapshot, now }) => {
     {
       const feed = snapshot?.data as FeedData | undefined;
@@ -212,19 +213,21 @@ const renderers: Record<
     {
       const weather = snapshot?.data as WeatherData | undefined;
       const description = weather
-        ? weather.code === 0
-          ? "맑음"
-          : weather.code <= 3
-            ? "구름 조금"
-            : weather.code <= 48
-              ? "흐림"
-              : weather.code <= 67
-                ? "비"
-                : weather.code <= 77
-                  ? "눈"
-                  : weather.code <= 86
-                    ? "소나기"
-                    : "뇌우"
+        ? weather.code == null
+          ? "날씨 상태 정보 없음"
+          : weather.code === 0
+            ? "맑음"
+            : weather.code <= 3
+              ? "구름 조금"
+              : weather.code <= 48
+                ? "흐림"
+                : weather.code <= 67
+                  ? "비"
+                  : weather.code <= 77
+                    ? "눈"
+                    : weather.code <= 86
+                      ? "소나기"
+                      : "뇌우"
         : "";
       return (
         <>
@@ -234,14 +237,23 @@ const renderers: Record<
               <div>
                 <span className="eyebrow">{weather.location}</span>
                 <strong>
-                  {Math.round(weather.temperature)}°<span>C</span>
+                  {Math.round(weather.temperature)}°
+                  <span>{weather.unit === "fahrenheit" ? "F" : "C"}</span>
                 </strong>
                 <p>{description}</p>
               </div>
               <CloudSun size={68} strokeWidth={1.3} />
               <div className="weather-details">
-                <span>체감 {Math.round(weather.feelsLike)}°</span>
-                <span>습도 {weather.humidity}%</span>
+                <span>
+                  {weather.feelsLike == null
+                    ? "체감 정보 없음"
+                    : `체감 ${Math.round(weather.feelsLike)}°`}
+                </span>
+                <span>
+                  {weather.humidity == null
+                    ? "습도 정보 없음"
+                    : `습도 ${weather.humidity}%`}
+                </span>
               </div>
             </div>
           )}

@@ -24,7 +24,11 @@ func (s *Store) claimRefresh(source Source, key string, now time.Time) (token st
 	if err = json.Unmarshal(data, &stored); err != nil {
 		return
 	}
-	if paused != 0 || sourceKey(stored) != key {
+	storedKey, keyErr := s.cacheKey(stored)
+	if keyErr != nil {
+		return "", true, false, keyErr
+	}
+	if paused != 0 || storedKey != key {
 		return "", true, false, nil
 	}
 	_, err = s.db.Exec("INSERT OR IGNORE INTO refresh_jobs(cache_key,source_id,next_run) VALUES(?,?,0)", key, source.ID)
@@ -40,6 +44,13 @@ func (s *Store) claimRefresh(source Source, key string, now time.Time) (token st
 	var rows int64
 	rows, err = result.RowsAffected()
 	claimed = rows == 1
+	if claimed {
+		currentKey, keyErr := s.cacheKey(stored)
+		if keyErr != nil || currentKey != key {
+			_ = s.finishRefresh(key, token, now)
+			return "", true, false, keyErr
+		}
+	}
 	return
 }
 func (s *Store) finishRefresh(key, token string, next time.Time) error {

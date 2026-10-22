@@ -80,6 +80,13 @@ func (s *Store) RotateConnectionKey(nextPath string) error {
 		return err
 	}
 	for _, item := range records {
+		var generation int
+		if err = tx.QueryRow("SELECT generation FROM connections WHERE id=?", item.id).Scan(&generation); err != nil {
+			return err
+		}
+		if err = clearConnectionCaches(tx, item.id, generation); err != nil {
+			return err
+		}
 		secret, err := previous.decrypt(item.id, item.kind, item.ciphertext)
 		if err != nil {
 			return err

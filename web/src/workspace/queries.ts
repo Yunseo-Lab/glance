@@ -33,6 +33,11 @@ export function invalidateWorkspace() {
   });
 }
 if (typeof window !== "undefined") {
+  window.addEventListener("glance:private-content-reset", () => {
+    void queryClient.resetQueries({
+      predicate: (query) => String(query.queryKey[1]).endsWith("/snapshots"),
+    });
+  });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden)
       void queryClient.refetchQueries(

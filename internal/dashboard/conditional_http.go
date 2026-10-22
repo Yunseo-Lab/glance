@@ -37,7 +37,11 @@ func (p *Providers) FetchCached(ctx context.Context, source Source) (any, error)
 	if p.store == nil {
 		return p.Fetch(ctx, source)
 	}
-	previous, err := p.store.validators(sourceKey(source))
+	key, err := p.store.cacheKey(source)
+	if err != nil {
+		return nil, err
+	}
+	previous, err := p.store.validators(key)
 	if err != nil {
 		return nil, err
 	}

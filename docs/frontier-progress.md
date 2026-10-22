@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-22T00:07:39+00:00
+최근 기록: 2026-10-22T00:17:45+00:00
 
-조사·설계 8/8 · 신규 구현 검증 41/72 · 진행 중 1 · 예정 28 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 44/72 · 진행 중 1 · 예정 25 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -90,3 +90,9 @@
 | 2026-10-22T00:05:18+00:00 | F049 | in_progress | RSS/Atom/JSON Feed를 안정 ID·정규 URL·날짜 정렬·중복 제거로 통합하고 형식 오류/보안 fixture를 검증한다. |
 | 2026-10-22T00:07:39+00:00 | F049 | verified | RSS/Atom/JSON Feed 항목의 안정 ID, 상대 URL/추적 파라미터 정규화, 날짜 내림차순, 중복 제거와 50개 상한, HTML 없는 발췌를 구현했다. malformed/DTD/unsafe 링크 fixture와 race 검사 통과. |
 | 2026-10-22T00:07:39+00:00 | F050 | in_progress | 날씨 위치 검색과 단위/시간대 설정, 없는 응답값의 null 처리 및 안전한 표시를 구현하고 mock HTTP로 검증한다. |
+| 2026-10-22T00:12:39+00:00 | F050 | verified | 고정 Open-Meteo 검색 API/소유자 분당 10회 한도, 위치 선택·섭씨/화씨·시간대, 관측 시각과 null 측정값을 구현했다. 없는 습도/체감/날씨 코드는 0으로 꾸미지 않는다. mock provider와 UI 저장/표시 검증 통과. |
+| 2026-10-22T00:12:39+00:00 | F051 | in_progress | GitHub 고정 GET API로 공개 저장소 요약/릴리스/열린 이슈/PR를 읽고 PR 중복·draft 제외, 제한량과 rate limit 메타데이터를 처리한다. |
+| 2026-10-22T00:14:14+00:00 | F051 | verified | 고정 GitHub API의 GET만 사용하는 공개 저장소/릴리스/이슈/PR 위젯을 구현했다. draft/PR 중복 제외와 403 rate-limit/Retry-After를 검증하고 저장→release 링크 렌더를 확인했다. 실제 GitHub API 접근은 환경의 403 제한으로 인수 범위 밖이다. |
+| 2026-10-22T00:14:14+00:00 | F052 | in_progress | private GitHub를 connection ID에 연결하고 owner/connection/generation을 포함한 cache key, 회전/철회 시 validator·본문 제거 및 권한 오류를 검증한다. |
+| 2026-10-22T00:17:45+00:00 | F052 | verified | connection ID와 credential generation을 포함한 private cache identity를 도입했다. 서버만 토큰을 GitHub 고정 GET에 붙이며 연결 FK/종류를 검증한다. 회전/철회 시 private 본문·validator·job을 제거하고 다른 연결 캐시는 보존한다. 철회된 기존 위젯도 다른 편집을 막지 않는다. |
+| 2026-10-22T00:17:45+00:00 | F053 | in_progress | 공개/암호화 개인 iCalendar를 읽기 전용으로 수집하고 시간대·DST·종일·반복·예외/취소와 계산 예산을 검증한다. |

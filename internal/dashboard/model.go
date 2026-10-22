@@ -31,6 +31,7 @@ type Widget struct {
 }
 
 type Source struct {
+	ConnectionID  string          `json:"connectionId,omitempty"`
 	ConfigVersion int             `json:"configVersion,omitempty"`
 	ID            string          `json:"id"`
 	Type          string          `json:"type"`
@@ -57,6 +58,8 @@ type RSSSource struct {
 	URL string `json:"url"`
 }
 type WeatherSource struct {
+	Units     string  `json:"units,omitempty"`
+	Timezone  string  `json:"timezone,omitempty"`
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Location  string  `json:"location"`
@@ -136,6 +139,9 @@ func (b Board) Validate() error {
 		}
 		if _, ok := sources[s.ID]; ok {
 			return errors.New("데이터 소스 ID가 중복됩니다")
+		}
+		if s.ConnectionID != "" && (!validID(s.ConnectionID) || s.Type != "github") {
+			return errors.New("지원하지 않는 개인 연결입니다")
 		}
 		sources[s.ID] = s
 		definition, ok := providerDefinitions[s.Type]

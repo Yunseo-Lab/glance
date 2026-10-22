@@ -980,11 +980,15 @@
       "depends_on": [
         "F049"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "f050-go-race.log: PASS",
+        "f050-e2e-rerun.log: 1 passed",
+        "internal/dashboard/weather_test.go"
+      ],
       "live_credentials_required": true,
-      "updated_at": "2026-10-22T00:07:39+00:00",
-      "progress_note": "날씨 위치 검색과 단위/시간대 설정, 없는 응답값의 null 처리 및 안전한 표시를 구현하고 mock HTTP로 검증한다.",
+      "updated_at": "2026-10-22T00:12:39+00:00",
+      "progress_note": "고정 Open-Meteo 검색 API/소유자 분당 10회 한도, 위치 선택·섭씨/화씨·시간대, 관측 시각과 null 측정값을 구현했다. 없는 습도/체감/날씨 코드는 0으로 꾸미지 않는다. mock provider와 UI 저장/표시 검증 통과.",
       "started_at": "2026-10-22T00:07:39+00:00"
     },
     {
@@ -996,9 +1000,16 @@
       "depends_on": [
         "F050"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": true
+      "status": "verified",
+      "evidence": [
+        "f051-go-race.log: PASS",
+        "f051-e2e.log: 1 passed",
+        "internal/dashboard/github_test.go"
+      ],
+      "live_credentials_required": true,
+      "updated_at": "2026-10-22T00:14:14+00:00",
+      "progress_note": "고정 GitHub API의 GET만 사용하는 공개 저장소/릴리스/이슈/PR 위젯을 구현했다. draft/PR 중복 제외와 403 rate-limit/Retry-After를 검증하고 저장→release 링크 렌더를 확인했다. 실제 GitHub API 접근은 환경의 403 제한으로 인수 범위 밖이다.",
+      "started_at": "2026-10-22T00:12:39+00:00"
     },
     {
       "id": "F052",
@@ -1011,9 +1022,16 @@
         "F028",
         "F051"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": true
+      "status": "verified",
+      "evidence": [
+        "f052-go-race.log: PASS including cache_identity_test.go",
+        "f052-github-e2e.log: 2 passed",
+        "f052-e2e.log: connection management 3 passed"
+      ],
+      "live_credentials_required": true,
+      "updated_at": "2026-10-22T00:17:45+00:00",
+      "progress_note": "connection ID와 credential generation을 포함한 private cache identity를 도입했다. 서버만 토큰을 GitHub 고정 GET에 붙이며 연결 FK/종류를 검증한다. 회전/철회 시 private 본문·validator·job을 제거하고 다른 연결 캐시는 보존한다. 철회된 기존 위젯도 다른 편집을 막지 않는다.",
+      "started_at": "2026-10-22T00:14:14+00:00"
     },
     {
       "id": "F053",
@@ -1027,9 +1045,12 @@
         "F050",
         "F052"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "evidence": [],
-      "live_credentials_required": true
+      "live_credentials_required": true,
+      "updated_at": "2026-10-22T00:17:45+00:00",
+      "progress_note": "공개/암호화 개인 iCalendar를 읽기 전용으로 수집하고 시간대·DST·종일·반복·예외/취소와 계산 예산을 검증한다.",
+      "started_at": "2026-10-22T00:17:45+00:00"
     },
     {
       "id": "F054",

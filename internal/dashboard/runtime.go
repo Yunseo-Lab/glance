@@ -57,12 +57,15 @@ func NewRuntime(store *Store, fetch FetchFunc) *Runtime {
 	return &Runtime{jitter: randomJitter, hostSlots: map[string]chan struct{}{}, now: time.Now, store: store, fetch: fetch, ctx: ctx, cancel: cancel, tasks: map[string]*taskState{}, slots: make(chan struct{}, 4)}
 }
 func sourceKey(source Source) string {
-	// Scope is explicit even for the initial local owner. Future authenticated
-	// connections must include their identity in this key before cache sharing.
+	// Public identity remains compatible; private identity includes the connection.
 	var config any
 	_ = json.Unmarshal(source.Config, &config)
 	canonical, _ := json.Marshal(config)
-	h := sha256.Sum256(append([]byte("local:"+source.Type+":"), canonical...))
+	prefix := "local:" + source.Type + ":"
+	if source.ConnectionID != "" {
+		prefix += "connection:" + source.ConnectionID + ":"
+	}
+	h := sha256.Sum256(append([]byte(prefix), canonical...))
 	return hex.EncodeToString(h[:])
 }
 func (r *Runtime) Close() { r.mu.Lock(); r.closed = true; r.cancel(); r.mu.Unlock(); r.wg.Wait() }
@@ -86,7 +89,10 @@ func snapshotState(snap Snapshot, now time.Time) Snapshot {
 }
 
 func (r *Runtime) Read(source Source) (Snapshot, error) {
-	key := sourceKey(source)
+	key, keyErr := r.store.cacheKey(source)
+	if keyErr != nil {
+		return Snapshot{}, keyErr
+	}
 	snap, err := r.store.snapshot(key)
 	if err != nil {
 		return snap, err

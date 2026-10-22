@@ -133,7 +133,8 @@ export function SourcePanel({
       <div className="resource-list">
         {data?.map((status) => {
           const source = status.source;
-          let name = source.config.location || source.type;
+          let name =
+            source.config.location || source.config.repository || source.type;
           try {
             if (source.config.url) name = new URL(source.config.url).hostname;
           } catch {}
@@ -243,8 +244,8 @@ export function ReadingPanel({
     string,
     { title: string; url: string; source: string; publishedAt?: string }
   >();
-  for (const source of board.sources.filter(
-    (source) => source.type === "rss",
+  for (const source of board.sources.filter((source) =>
+    ["rss", "github"].includes(source.type),
   )) {
     const data = snapshots[source.id]?.data as FeedData | undefined;
     for (const item of Array.isArray(data?.items) ? data.items : [])

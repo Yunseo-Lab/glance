@@ -53,6 +53,25 @@ export function validateWidgetDetail(
           );
       }
       break;
+    case "github":
+      if (
+        !source?.config.repository ||
+        !/^([a-zA-Z0-9][a-zA-Z0-9-]{0,38})\/([a-zA-Z0-9_.-]{1,100})$/.test(
+          source.config.repository,
+        ) ||
+        [".", ".."].includes(source.config.repository.split("/")[1])
+      )
+        return fail(
+          "repository",
+          "owner/repository 형식의 저장소를 입력하세요.",
+        );
+      if (
+        !Number.isInteger(widget.config.limit) ||
+        widget.config.limit! < 1 ||
+        widget.config.limit! > 20
+      )
+        return fail("limit", "표시 개수는 1~20 사이의 정수로 입력하세요.");
+      break;
     case "rss":
       if (
         !Number.isInteger(widget.config.limit) ||
@@ -82,6 +101,16 @@ export function validateWidgetDetail(
         config.longitude! > 180
       )
         return fail("longitude", "위도와 경도를 확인하세요.");
+      if (config.units && !["celsius", "fahrenheit"].includes(config.units))
+        return fail("units", "온도 단위를 확인하세요.");
+      if (config.timezone)
+        try {
+          new Intl.DateTimeFormat("ko-KR", {
+            timeZone: config.timezone,
+          }).format();
+        } catch {
+          return fail("timezone", "올바른 시간대를 입력하세요.");
+        }
       break;
     }
   }

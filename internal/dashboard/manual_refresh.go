@@ -40,7 +40,10 @@ func (s *Store) RequestRefresh(id string, now time.Time) (Source, RefreshReceipt
 	if err = json.Unmarshal(document, &source); err != nil {
 		return source, RefreshReceipt{}, err
 	}
-	key := sourceKey(source)
+	key, err := cacheKeyFrom(tx, source)
+	if err != nil {
+		return source, RefreshReceipt{}, err
+	}
 	if _, err = tx.Exec("INSERT OR IGNORE INTO refresh_jobs(cache_key,source_id,next_run) VALUES(?,?,0)", key, source.ID); err != nil {
 		return source, RefreshReceipt{}, err
 	}

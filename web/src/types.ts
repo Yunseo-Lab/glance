@@ -55,5 +55,7 @@ export async function request<T>(
     typeof window !== "undefined"
   )
     window.dispatchEvent(new Event("glance:mutated"));
+  if (path.endsWith("/revoke"))
+    window.dispatchEvent(new Event("glance:private-content-reset"));
   return body as T;
 }

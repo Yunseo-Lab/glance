@@ -50,6 +50,15 @@ func replaceSourceRefs(tx *sql.Tx, boardID string, sources []Source) error {
 		return err
 	}
 	for _, source := range sources {
+		connectionRevoked := false
+		if source.ConnectionID != "" {
+			var kind, status string
+			var secret bool
+			if err := tx.QueryRow("SELECT kind,status,COALESCE(length(encrypted_secret)>0,0) FROM connections WHERE id=? AND owner_id='local'", source.ConnectionID).Scan(&kind, &status, &secret); err != nil || kind != source.Type {
+				return ErrInvalidInput
+			}
+			connectionRevoked = status == "revoked" || !secret
+		}
 		var previous []byte
 		err := tx.QueryRow("SELECT document FROM sources WHERE id=? AND owner_id='local'", source.ID).Scan(&previous)
 		if err == nil {
@@ -63,11 +72,14 @@ func replaceSourceRefs(tx *sql.Tx, boardID string, sources []Source) error {
 				return ErrSourceConflict
 			}
 		} else if errors.Is(err, sql.ErrNoRows) {
+			if connectionRevoked {
+				return ErrInvalidInput
+			}
 			document, err := json.Marshal(source)
 			if err != nil {
 				return err
 			}
-			if _, err = tx.Exec("INSERT INTO sources(id,owner_id,document) VALUES(?,'local',?)", source.ID, document); err != nil {
+			if _, err = tx.Exec("INSERT INTO sources(id,owner_id,document,connection_id) VALUES(?,'local',?,NULLIF(?,''))", source.ID, document, source.ConnectionID); err != nil {
 				return err
 			}
 		} else {

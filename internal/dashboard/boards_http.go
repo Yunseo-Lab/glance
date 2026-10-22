@@ -33,6 +33,20 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 func registerBoardRoutes(mux *http.ServeMux, service *DashboardService) {
+	mux.HandleFunc("GET /api/v1/locations", func(w http.ResponseWriter, r *http.Request) {
+		result, err := service.SearchLocations(r.Context(), r.URL.Query().Get("q"))
+		if err != nil {
+			var upstream *ProviderError
+			if errors.As(err, &upstream) {
+				apiError(w, 502, "지역을 검색하지 못했습니다. 잠시 뒤 다시 시도하세요.")
+			} else {
+				serviceError(w, err)
+			}
+			return
+		}
+		jsonResponse(w, 200, result)
+	})
+
 	mux.HandleFunc("DELETE /api/v1/sources/{id}", func(w http.ResponseWriter, r *http.Request) {
 		var input struct{}
 		if !readMutation(w, r, &input) {

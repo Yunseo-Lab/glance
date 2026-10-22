@@ -1,5 +1,21 @@
 // Generated from docs/dashboard-api.openapi.yaml; do not edit.
 export interface paths {
+    "/api/v1/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["searchLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/templates": {
         parameters: {
             query?: never;
@@ -446,7 +462,7 @@ export interface components {
             configVersion?: number;
             id: string;
             /** @enum {string} */
-            type: "clock" | "calendar" | "note" | "bookmarks" | "rss" | "weather";
+            type: "clock" | "calendar" | "note" | "bookmarks" | "rss" | "weather" | "github";
             title: string;
             /** @enum {string} */
             size: "small" | "wide";
@@ -455,11 +471,13 @@ export interface components {
             config: components["schemas"]["WidgetConfig"];
         };
         Source: {
+            /** @description Reference to server encrypted connection; never a token */
+            connectionId?: string;
             /** @description Omitted in original v1 documents; omission means version 1. Unknown versions are rejected. */
             configVersion?: number;
             id: string;
             /** @enum {string} */
-            type: "rss" | "weather";
+            type: "rss" | "weather" | "github";
             config: components["schemas"]["SourceConfig"];
         };
         Link: {
@@ -474,6 +492,12 @@ export interface components {
             limit?: number;
         };
         SourceConfig: {
+            repository?: string;
+            /** @enum {string} */
+            view?: "repository" | "releases" | "issues" | "pulls";
+            /** @enum {string} */
+            units?: "celsius" | "fahrenheit";
+            timezone?: string;
             url?: string;
             latitude?: number;
             longitude?: number;
@@ -511,12 +535,25 @@ export interface components {
                 publishedAt?: string;
             }[];
         };
+        LocationResult: {
+            name: string;
+            country: string;
+            region: string;
+            latitude: number;
+            longitude: number;
+            timezone: string;
+        };
         WeatherData: {
+            /** @enum {string} */
+            unit?: "celsius" | "fahrenheit";
+            timezone?: string;
+            /** Format: date-time */
+            observedAt?: string;
             location: string;
             temperature: number;
-            feelsLike: number;
-            humidity: number;
-            code: number;
+            feelsLike: number | null;
+            humidity: number | null;
+            code: number | null;
         };
         Connection: {
             id: string;
@@ -585,6 +622,49 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    searchLocations: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to five Open-Meteo locations, ten searches per minute per owner */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationResult"][];
+                };
+            };
+            /** @description Invalid search query */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Search quota reached; Retry-After indicates wait */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Upstream search unavailable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listTemplates: {
         parameters: {
             query?: never;

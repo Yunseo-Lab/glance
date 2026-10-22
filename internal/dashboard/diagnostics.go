@@ -59,7 +59,10 @@ func (s *Store) SourceStatuses(now time.Time) ([]SourceStatus, error) {
 		if err != nil {
 			return nil, err
 		}
-		key := sourceKey(source)
+		key, err := s.cacheKey(source)
+		if err != nil {
+			return nil, err
+		}
 		snapshot, err := s.snapshot(key)
 		if err != nil {
 			return nil, err

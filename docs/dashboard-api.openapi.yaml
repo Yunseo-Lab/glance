@@ -13,6 +13,32 @@ security:
   - basicAuth: []
   - ownerSession: []
 paths:
+  /api/v1/locations:
+    get:
+      operationId: searchLocations
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 80
+      responses:
+        '200':
+          description: Up to five Open-Meteo locations, ten searches per minute per owner
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationResult'
+        '400':
+          description: Invalid search query
+        '429':
+          description: Search quota reached; Retry-After indicates wait
+        '502':
+          description: Upstream search unavailable
   /api/v1/templates:
     get:
       operationId: listTemplates
@@ -522,7 +548,7 @@ components:
           type: string
         type:
           type: string
-          enum: [clock, calendar, note, bookmarks, rss, weather]
+          enum: [clock, calendar, note, bookmarks, rss, weather, github]
         title:
           type: string
         size:
@@ -538,6 +564,9 @@ components:
       additionalProperties: false
       required: [id, type, config]
       properties:
+        connectionId:
+          type: string
+          description: Reference to server encrypted connection; never a token
         configVersion:
           type: integer
           minimum: 1
@@ -547,7 +576,7 @@ components:
           type: string
         type:
           type: string
-          enum: [rss, weather]
+          enum: [rss, weather, github]
         config:
           $ref: '#/components/schemas/SourceConfig'
     Link:
@@ -577,6 +606,16 @@ components:
       type: object
       additionalProperties: false
       properties:
+        repository:
+          type: string
+        view:
+          type: string
+          enum: [repository, releases, issues, pulls]
+        units:
+          type: string
+          enum: [celsius, fahrenheit]
+        timezone:
+          type: string
         url:
           type: string
         latitude:
@@ -643,20 +682,50 @@ components:
               publishedAt:
                 type: string
                 format: date-time
+
+    LocationResult:
+      type: object
+      additionalProperties: false
+      required: [name, country, region, latitude, longitude, timezone]
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        region:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+
     WeatherData:
       type: object
       required: [location, temperature, feelsLike, humidity, code]
       properties:
+        unit:
+          type: string
+          enum: [celsius, fahrenheit]
+        timezone:
+          type: string
+        observedAt:
+          type: string
+          format: date-time
         location:
           type: string
         temperature:
           type: number
         feelsLike:
           type: number
+          nullable: true
         humidity:
           type: integer
+          nullable: true
         code:
           type: integer
+          nullable: true
 
     Connection:
       type: object

@@ -2,7 +2,6 @@ package dashboard
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/url"
 	"strings"
@@ -111,6 +110,15 @@ func (s *Store) RevokeConnection(id string) error {
 		return err
 	}
 	defer tx.Rollback()
+	var previousGeneration int
+	if err = tx.QueryRow("SELECT generation FROM connections WHERE id=? AND owner_id='local'", id).Scan(&previousGeneration); errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	if err = clearConnectionCaches(tx, id, previousGeneration); err != nil {
+		return err
+	}
 	result, err := tx.Exec("UPDATE connections SET encrypted_secret=NULL,status='revoked',generation=generation+1 WHERE id=? AND owner_id='local'", id)
 	if err != nil {
 		return err
@@ -127,35 +135,6 @@ func (s *Store) RevokeConnection(id string) error {
 	}
 	if _, err = tx.Exec("UPDATE refresh_jobs SET lease_token='',lease_until=0 WHERE source_id IN(SELECT id FROM sources WHERE connection_id=? AND owner_id='local')", id); err != nil {
 		return err
-	}
-	// Connected snapshots may contain private content. Drop them on revocation.
-	rows, err := tx.Query("SELECT document FROM sources WHERE connection_id=? AND owner_id='local'", id)
-	if err != nil {
-		return err
-	}
-	var keys []string
-	for rows.Next() {
-		var data []byte
-		var source Source
-		if err = rows.Scan(&data); err != nil {
-			rows.Close()
-			return err
-		}
-		if err = json.Unmarshal(data, &source); err != nil {
-			rows.Close()
-			return err
-		}
-		keys = append(keys, sourceKey(source))
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return err
-	}
-	for _, key := range keys {
-		if _, err = tx.Exec("DELETE FROM snapshots WHERE cache_key=?", key); err != nil {
-			return err
-		}
 	}
 	return tx.Commit()
 }

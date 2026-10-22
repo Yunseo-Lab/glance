@@ -1,3 +1,6 @@
+import type { components } from "./generated/api";
+import { useResource } from "./workspace/useResource";
+import CitySearch from "./workspace/CitySearch";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import type { Link, Source, Widget, WidgetType } from "./types";
@@ -30,8 +33,24 @@ export default function WidgetEditor({
     widget?.config.links || [{ title: "", url: "" }],
   );
   const [limit, setLimit] = useState(widget?.config.limit || 5);
+  const { data: connections = [] } = useResource<
+    components["schemas"]["Connection"][]
+  >("/api/v1/connections", 0, type === "github");
+  const [connectionID, setConnectionID] = useState(source?.connectionId || "");
+  const [repository, setRepository] = useState(
+    source?.config.repository || "glanceapp/glance",
+  );
+  const [githubView, setGithubView] = useState(
+    source?.config.view || "releases",
+  );
   const [url, setUrl] = useState(source?.config.url || "");
   const [location, setLocation] = useState(source?.config.location || "서울");
+  const [weatherUnits, setWeatherUnits] = useState(
+    source?.config.units || "celsius",
+  );
+  const [weatherTimezone, setWeatherTimezone] = useState(
+    source?.config.timezone || "",
+  );
   const [latitude, setLatitude] = useState(
     String(source?.config.latitude ?? 37.5665),
   );
@@ -48,7 +67,7 @@ export default function WidgetEditor({
 
   useEffect(() => {
     dialog.current?.showModal();
- dialog.current?.querySelector<HTMLInputElement>("input")?.focus();
+    dialog.current?.querySelector<HTMLInputElement>("input")?.focus();
   }, []);
   function buildDraft(commit = false) {
     const next: Widget = {
@@ -68,21 +87,34 @@ export default function WidgetEditor({
           url: link.url.trim(),
         })),
       };
-    if (type === "rss") next.config = { limit };
+    if (type === "rss" || type === "github") next.config = { limit };
     let nextSource: Source | undefined;
-    if (type === "rss" || type === "weather") {
+    if (type === "rss" || type === "weather" || type === "github") {
       const config =
-        type === "rss"
-          ? { url: url.trim() }
-          : {
-              latitude: latitude.trim() === "" ? NaN : Number(latitude),
-              longitude: longitude.trim() === "" ? NaN : Number(longitude),
-              location: location.trim(),
-            };
+        type === "github"
+          ? { repository: repository.trim(), view: githubView }
+          : type === "rss"
+            ? { url: url.trim() }
+            : {
+                latitude: latitude.trim() === "" ? NaN : Number(latitude),
+                longitude: longitude.trim() === "" ? NaN : Number(longitude),
+                location: location.trim(),
+                units:
+                  weatherUnits === "fahrenheit" || source?.config.units
+                    ? weatherUnits
+                    : undefined,
+                timezone: weatherTimezone.trim() || undefined,
+              };
       // Changing a shared source creates a new source; other widgets stay intact.
       const unchanged =
         source?.type === type &&
-        JSON.stringify(source.config) === JSON.stringify(config);
+        (source.connectionId || "") ===
+          (type === "github" ? connectionID : "") &&
+        Object.keys({ ...source.config, ...config }).every(
+          (key) =>
+            JSON.stringify((source.config as Record<string, unknown>)[key]) ===
+            JSON.stringify((config as Record<string, unknown>)[key]),
+        );
       nextSource = {
         configVersion: 1,
         id: unchanged
@@ -91,6 +123,8 @@ export default function WidgetEditor({
             ? crypto.randomUUID()
             : "preview-source",
         type,
+        connectionId:
+          type === "github" && connectionID ? connectionID : undefined,
         config,
       };
       next.sourceId = nextSource.id;
@@ -216,6 +250,81 @@ export default function WidgetEditor({
             <small>예: Asia/Seoul, America/New_York, Europe/London</small>
           </label>
         )}
+        {type === "github" && (
+          <>
+            <label>
+              저장소
+              <input
+                aria-label="저장소"
+                {...fieldProps("repository")}
+                value={repository}
+                maxLength={140}
+                onChange={(event) => setRepository(event.target.value)}
+                placeholder="owner/repository"
+              />
+            </label>
+            <label>
+              가져올 정보
+              <select
+                aria-label="가져올 정보"
+                value={githubView}
+                onChange={(event) =>
+                  setGithubView(
+                    event.target.value as
+                      | "repository"
+                      | "releases"
+                      | "issues"
+                      | "pulls",
+                  )
+                }
+              >
+                <option value="repository">저장소 요약</option>
+                <option value="releases">릴리스</option>
+                <option value="issues">열린 이슈</option>
+                <option value="pulls">열린 PR</option>
+              </select>
+            </label>
+            <label>
+              표시할 소식 수
+              <input
+                aria-label="표시할 소식 수"
+                type="number"
+                min={1}
+                max={20}
+                {...fieldProps("limit")}
+                value={limit}
+                onChange={(event) => setLimit(Number(event.target.value))}
+              />
+            </label>
+            <label>
+              GitHub 연결
+              <select
+                aria-label="GitHub 연결"
+                value={connectionID}
+                onChange={(event) => setConnectionID(event.target.value)}
+              >
+                <option value="">공개 저장소 · 인증 없음</option>
+                {connections
+                  .filter(
+                    (connection) =>
+                      connection.kind === "github" &&
+                      connection.hasSecret &&
+                      connection.status !== "revoked",
+                  )
+                  .map((connection) => (
+                    <option key={connection.id} value={connection.id}>
+                      {connection.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <p className="form-help">
+              선택한 연결의 읽기 권한으로 가져옵니다. 비공개 저장소는 해당
+              저장소 접근 권한이 필요합니다. 연결은 데이터 소스 화면에서
+              추가하세요.
+            </p>
+          </>
+        )}
         {type === "rss" && (
           <>
             <label>
@@ -250,6 +359,43 @@ export default function WidgetEditor({
         )}
         {type === "weather" && (
           <>
+            <CitySearch
+              onChoose={(place) => {
+                setLocation(place.name);
+                setLatitude(String(place.latitude));
+                setLongitude(String(place.longitude));
+                setWeatherTimezone(place.timezone);
+              }}
+            />
+            <div className="form-row">
+              <label>
+                온도 단위
+                <select
+                  aria-label="온도 단위"
+                  value={weatherUnits}
+                  onChange={(event) =>
+                    setWeatherUnits(
+                      event.target.value as "celsius" | "fahrenheit",
+                    )
+                  }
+                >
+                  <option value="celsius">섭씨 °C</option>
+                  <option value="fahrenheit">화씨 °F</option>
+                </select>
+              </label>
+              <label>
+                날씨 시간대
+                <input
+                  {...fieldProps("timezone")}
+                  aria-label="날씨 시간대"
+                  placeholder="UTC (기본값)"
+                  value={weatherTimezone}
+                  onChange={(event) => setWeatherTimezone(event.target.value)}
+                  maxLength={100}
+                />
+              </label>
+            </div>
+
             <label>
               지역 이름
               <input

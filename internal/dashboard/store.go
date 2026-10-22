@@ -175,7 +175,11 @@ func (s *Store) pruneSnapshots(_ []Source) error {
 	}
 	keys := map[string]bool{}
 	for _, source := range sources {
-		keys[sourceKey(source)] = true
+		key, err := s.cacheKey(source)
+		if err != nil {
+			return err
+		}
+		keys[key] = true
 	}
 	rows, err := s.db.Query("SELECT cache_key FROM snapshots")
 	if err != nil {

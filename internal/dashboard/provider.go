@@ -144,6 +144,9 @@ func NewProviders(stores ...*Store) *Providers {
 	return p
 }
 func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
+	return p.getWithHeaders(ctx, address, nil)
+}
+func (p *Providers) getWithHeaders(ctx context.Context, address string, headers http.Header) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	if err != nil {
 		return nil, err
@@ -151,7 +154,14 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 	if err = p.checkRequest(req); err != nil {
 		return nil, err
 	}
+	for key, values := range headers {
+		req.Header[key] = append([]string(nil), values...)
+	}
 	req.Header.Set("User-Agent", "Glance-Dashboard/1.0")
+	if req.URL.Hostname() == "api.github.com" {
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	}
 	metadata, _ := ctx.Value(conditionalKey{}).(*conditionalRequest)
 	if metadata != nil {
 		if metadata.previous.ETag != "" {
@@ -190,7 +200,15 @@ func (p *Providers) get(ctx context.Context, address string) ([]byte, error) {
 	}
 	if res.StatusCode != http.StatusOK {
 		failure := statusError(res.StatusCode)
-		failure.RetryAfter = parseRetryAfter(res.Header.Get("Retry-After"), time.Now())
+		if res.StatusCode == 403 && res.Header.Get("X-RateLimit-Remaining") == "0" {
+			failure.Code = "rate_limited"
+			if reset, err := strconv.ParseInt(res.Header.Get("X-RateLimit-Reset"), 10, 64); err == nil && reset > time.Now().Unix() {
+				failure.RetryAfter = time.Until(time.Unix(reset, 0))
+			}
+		}
+		if retry := parseRetryAfter(res.Header.Get("Retry-After"), time.Now()); retry > 0 {
+			failure.RetryAfter = retry
+		}
 		return nil, failure
 	}
 	const maxBody = MaxProviderBody
@@ -213,11 +231,14 @@ type FeedData struct {
 	Items []FeedItem `json:"items"`
 }
 type WeatherData struct {
-	Location    string  `json:"location"`
-	Temperature float64 `json:"temperature"`
-	FeelsLike   float64 `json:"feelsLike"`
-	Humidity    int     `json:"humidity"`
-	Code        int     `json:"code"`
+	Unit        string     `json:"unit,omitempty"`
+	Timezone    string     `json:"timezone,omitempty"`
+	ObservedAt  *time.Time `json:"observedAt,omitempty"`
+	Location    string     `json:"location"`
+	Temperature float64    `json:"temperature"`
+	FeelsLike   *float64   `json:"feelsLike"`
+	Humidity    *int       `json:"humidity"`
+	Code        *int       `json:"code"`
 }
 
 func (p *Providers) Fetch(ctx context.Context, s Source) (any, error) {
@@ -251,6 +272,16 @@ func (p *Providers) fetchWeather(ctx context.Context, s Source) (any, error) {
 		return nil, err
 	}
 	query := url.Values{"latitude": {strconv.FormatFloat(c.Latitude, 'f', 6, 64)}, "longitude": {strconv.FormatFloat(c.Longitude, 'f', 6, 64)}, "current": {"temperature_2m,apparent_temperature,relative_humidity_2m,weather_code"}}
+	units, timezone := c.Units, c.Timezone
+	if units == "" {
+		units = "celsius"
+	}
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	query.Set("temperature_unit", units)
+	query.Set("timezone", timezone)
+	query.Set("timeformat", "unixtime")
 	data, err := p.get(ctx, "https://api.open-meteo.com/v1/forecast?"+query.Encode())
 	if err != nil {
 		return nil, err
@@ -260,11 +291,13 @@ func (p *Providers) fetchWeather(ctx context.Context, s Source) (any, error) {
 
 func parseWeather(data []byte, c WeatherSource) (WeatherData, error) {
 	var body struct {
-		Current *struct {
+		Timezone string `json:"timezone"`
+		Current  *struct {
+			Observed    *int64   `json:"time"`
 			Temperature *float64 `json:"temperature_2m"`
-			FeelsLike   float64  `json:"apparent_temperature"`
-			Humidity    int      `json:"relative_humidity_2m"`
-			Code        int      `json:"weather_code"`
+			FeelsLike   *float64 `json:"apparent_temperature"`
+			Humidity    *int     `json:"relative_humidity_2m"`
+			Code        *int     `json:"weather_code"`
 		} `json:"current"`
 	}
 	if err := json.Unmarshal(data, &body); err != nil {
@@ -273,7 +306,34 @@ func parseWeather(data []byte, c WeatherSource) (WeatherData, error) {
 	if body.Current == nil || body.Current.Temperature == nil {
 		return WeatherData{}, errors.New("missing current weather data")
 	}
-	return WeatherData{Location: c.Location, Temperature: *body.Current.Temperature, FeelsLike: body.Current.FeelsLike, Humidity: body.Current.Humidity, Code: body.Current.Code}, nil
+	current := body.Current
+	if *current.Temperature < -200 || *current.Temperature > 200 {
+		return WeatherData{}, &ProviderError{Code: "invalid_response"}
+	}
+	if current.Humidity != nil && (*current.Humidity < 0 || *current.Humidity > 100) {
+		current.Humidity = nil
+	}
+	if current.Code != nil && !validWeatherCode(*current.Code) {
+		current.Code = nil
+	}
+	var observed *time.Time
+	if current.Observed != nil {
+		value := time.Unix(*current.Observed, 0).UTC()
+		observed = &value
+	}
+	unit := c.Units
+	if unit == "" {
+		unit = "celsius"
+	}
+	timezone := c.Timezone
+	if timezone == "" {
+		timezone = body.Timezone
+	}
+	if _, err := time.LoadLocation(timezone); timezone == "" || err != nil {
+		timezone = "UTC"
+	}
+	return WeatherData{Location: c.Location, Temperature: *current.Temperature, FeelsLike: current.FeelsLike, Humidity: current.Humidity, Code: current.Code, Unit: unit, Timezone: timezone, ObservedAt: observed}, nil
+
 }
 
 func (p *Providers) resolveHost(ctx context.Context, host string) ([]net.IP, error) {
@@ -293,4 +353,12 @@ func (p *Providers) dialHost(ctx context.Context, network, address string) (net.
 		return p.dial(ctx, network, address)
 	}
 	return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, address)
+}
+
+func validWeatherCode(code int) bool {
+	switch code {
+	case 0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99:
+		return true
+	}
+	return false
 }

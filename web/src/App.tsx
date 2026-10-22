@@ -16,6 +16,7 @@ import {
 import { useResource } from "./workspace/useResource";
 import { useEffect, useRef, useState, useReducer } from "react";
 import {
+  GitFork,
   Layers,
   Undo2,
   Redo2,
@@ -73,6 +74,7 @@ import {
 const icons = {
   clock: Clock3,
   calendar: CalendarDays,
+  github: GitFork,
   rss: Rss,
   weather: CloudSun,
   bookmarks: Bookmark,
@@ -426,8 +428,8 @@ export default function App() {
     (widget) =>
       (category === "all" ||
         (category === "news"
-          ? widget.type === "rss"
-          : widget.type !== "rss")) &&
+          ? ["rss", "github"].includes(widget.type)
+          : !["rss", "github"].includes(widget.type))) &&
       widget.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
   const categories: {
