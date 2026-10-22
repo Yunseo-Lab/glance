@@ -1,8 +1,8 @@
 # 구현 진행 기록
 
-최근 기록: 2026-10-22T02:15:33+00:00
+최근 기록: 2026-10-22T02:24:54+00:00
 
-조사·설계 8/8 · 신규 구현 검증 66/72 · 진행 중 1 · 예정 3 · 차단 0 · 외부 조건 2
+조사·설계 8/8 · 신규 구현 검증 70/72 · 진행 중 0 · 예정 0 · 차단 0 · 외부 조건 2
 
 전체 계획: [80단계](frontier-implementation-plan.md). 완료는 구현 후 검증 증거가 있는 경우만 센다. 실제 Mac·도메인·개인 키 검증은 fixture 성공과 구분한다.
 
@@ -140,3 +140,10 @@
 | 2026-10-22T02:13:45+00:00 | F074 | in_progress | Added race/contracts/browser/axe/visual/backup/upgrade/performance and native AMD64/ARM64 container/security jobs, weekly 60-minute soak and always-preserved evidence artifacts; checking workflow definitions. |
 | 2026-10-22T02:15:33+00:00 | F074 | verified | Implemented parsed CI gates for contracts/race/vet/all npm+Go security/browser+axe+fixed-font visual/performance/actual historical upgrade+separate-key restore/local TLS, native AMD64+ARM64 dashboard+patched-proxy container scans and SBOMs. Added scheduled actual60m soak and always-uploaded evidence. Equivalent local gates passed; remote GitHub Actions execution has not been observed here. |
 | 2026-10-22T02:15:33+00:00 | F075 | in_progress | Preparing clean reviewed source commit, native CGO binaries, full third-party notices/source archives, SHA-256 manifests and image CycloneDX SBOM. Refuses dirty source/VCS mismatch. |
+| 2026-10-22T02:22:52+00:00 | F075 | verified | Clean source commit0d3b1a3 produced VCS-matching CGO AMD64/ARM64 dashboard and patched-proxy packages, corresponding source archives and full Go/npm/stdlib LICENSE/NOTICE. Four actual images exported, immutable local image IDs/binary hashes/CycloneDX SBOMs/scans mapped to that commit; all checksums checked,0 HIGH/CRITICAL. No registry/GitHub release or macOS hardware build claimed. |
+| 2026-10-22T02:22:52+00:00 | F076 | in_progress | Re-running actual historical v1 binary against the clean candidate for migration and rollback. |
+| 2026-10-22T02:22:52+00:00 | F076 | verified | Historical commit0a376f9 real binary created schema1 fixture; clean0d3b1a3 binary migrated to12 preserving actual IDs/config/Unicode/revision. Verified automatic pre-upgrade backup, old binary rejects new DB without changing its hash, old binary+restored old DB works. |
+| 2026-10-22T02:22:52+00:00 | F077 | in_progress | Final clean candidate online backup/export/key-pair verification and corrupt-newer-backup warning rehearse completed. |
+| 2026-10-22T02:22:52+00:00 | F077 | verified | Verified bounded dry-run/apply rotation retains >=2 valid backups, skips corrupted files/symlinks; online DB+separate0600key export into separate0700 destinations has checksums and restore verification. Missing/wrong key fails; healthy/stale/corrupt-newer warning paths inspected. This is a mounted-directory/offsite simulation; actual remote replication is not configured. |
+| 2026-10-22T02:22:52+00:00 | F078 | in_progress | Finalizing safe operational status, cloud start helper, idempotent install evidence and Mac launchd/runbook boundaries. |
+| 2026-10-22T02:24:54+00:00 | F078 | verified | Safe operations CLI tested with real missing/fresh/72h-stale SQLite backups and corrupt-newer failure; actual legacy YAML render/static assets passed. Current cloud install re-run and start helper twice preserved DB/key, fts5=true; clean packaged UI/source link verified on8090. Saved reusable draft requires Publish and has not been fresh-restored. Mac login/startup/sleep/disk/runbook and plist syntax documented; actual Mac/phone/publicTLS still F079/F080. |

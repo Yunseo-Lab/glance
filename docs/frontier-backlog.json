@@ -1492,11 +1492,14 @@
       "depends_on": [
         "F074"
       ],
-      "status": "in_progress",
-      "evidence": [],
+      "status": "verified",
+      "evidence": [
+        "docs/verification/release-artifacts.json",
+        "scripts/package-release.py"
+      ],
       "live_credentials_required": false,
-      "updated_at": "2026-10-22T02:15:33+00:00",
-      "progress_note": "Preparing clean reviewed source commit, native CGO binaries, full third-party notices/source archives, SHA-256 manifests and image CycloneDX SBOM. Refuses dirty source/VCS mismatch.",
+      "updated_at": "2026-10-22T02:22:52+00:00",
+      "progress_note": "Clean source commit0d3b1a3 produced VCS-matching CGO AMD64/ARM64 dashboard and patched-proxy packages, corresponding source archives and full Go/npm/stdlib LICENSE/NOTICE. Four actual images exported, immutable local image IDs/binary hashes/CycloneDX SBOMs/scans mapped to that commit; all checksums checked,0 HIGH/CRITICAL. No registry/GitHub release or macOS hardware build claimed.",
       "started_at": "2026-10-22T02:15:33+00:00"
     },
     {
@@ -1508,9 +1511,15 @@
       "depends_on": [
         "F075"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/upgrade-rollback.json",
+        "scripts/rehearse-upgrade.py"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:22:52+00:00",
+      "progress_note": "Historical commit0a376f9 real binary created schema1 fixture; clean0d3b1a3 binary migrated to12 preserving actual IDs/config/Unicode/revision. Verified automatic pre-upgrade backup, old binary rejects new DB without changing its hash, old binary+restored old DB works.",
+      "started_at": "2026-10-22T02:22:52+00:00"
     },
     {
       "id": "F077",
@@ -1523,9 +1532,16 @@
         "F073",
         "F076"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/backup-recovery.json",
+        "internal/dashboard/backup_rotation_test.go",
+        "scripts/export-recovery.py"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:22:52+00:00",
+      "progress_note": "Verified bounded dry-run/apply rotation retains >=2 valid backups, skips corrupted files/symlinks; online DB+separate0600key export into separate0700 destinations has checksums and restore verification. Missing/wrong key fails; healthy/stale/corrupt-newer warning paths inspected. This is a mounted-directory/offsite simulation; actual remote replication is not configured.",
+      "started_at": "2026-10-22T02:22:52+00:00"
     },
     {
       "id": "F078",
@@ -1536,9 +1552,17 @@
       "depends_on": [
         "F077"
       ],
-      "status": "planned",
-      "evidence": [],
-      "live_credentials_required": false
+      "status": "verified",
+      "evidence": [
+        "docs/verification/operations.json",
+        "docs/operations.md",
+        "deploy/glance.launchd.plist",
+        "scripts/operations-status.py"
+      ],
+      "live_credentials_required": false,
+      "updated_at": "2026-10-22T02:24:54+00:00",
+      "progress_note": "Safe operations CLI tested with real missing/fresh/72h-stale SQLite backups and corrupt-newer failure; actual legacy YAML render/static assets passed. Current cloud install re-run and start helper twice preserved DB/key, fts5=true; clean packaged UI/source link verified on8090. Saved reusable draft requires Publish and has not been fresh-restored. Mac login/startup/sleep/disk/runbook and plist syntax documented; actual Mac/phone/publicTLS still F079/F080.",
+      "started_at": "2026-10-22T02:22:52+00:00"
     },
     {
       "id": "F079",

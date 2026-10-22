@@ -1,0 +1,72 @@
+{
+  "source_commit": "0d3b1a36441e67fc2343cd3fd7e48b63d8b687ff",
+  "images": [
+    {
+      "platform": "amd64",
+      "image": "glance-dashboard:frontier-rc",
+      "local_image_id": "sha256:d546b25a85258ca78545888f5535e2de5610c51d54150a1b9b3dc67b139ca555",
+      "registry_digest": null,
+      "published": false,
+      "binary_sha256": "5b73d3b2c5983c5ea5b4d69c35a2450e14cb2d132d50a95d496819bd486fd6fc",
+      "source_commit": "0d3b1a36441e67fc2343cd3fd7e48b63d8b687ff",
+      "vulnerabilities": {
+        "MEDIUM": 15,
+        "LOW": 8
+      },
+      "sbom_components": 35,
+      "sbom_sha256": "359b135a8ad97c3eff214288cce2554668ce8331056605d19455b2f6e5ae5ce4"
+    },
+    {
+      "platform": "arm64",
+      "image": "glance-dashboard:frontier-arm64",
+      "local_image_id": "sha256:6cdcf8b1841667d7fafd8615eb2cf8f233f01d2fbf123468c60c51dcb6476e3a",
+      "registry_digest": null,
+      "published": false,
+      "binary_sha256": "a71f42988a1ef7d2c2eb53efb3593cc9af96e5bfbd844f3683301ab541173ab8",
+      "source_commit": "0d3b1a36441e67fc2343cd3fd7e48b63d8b687ff",
+      "vulnerabilities": {
+        "MEDIUM": 15,
+        "LOW": 8
+      },
+      "sbom_components": 35,
+      "sbom_sha256": "aeda35f63b0d014d3ca327ef5fbfd2b5d65072251f51252e9fee3034e339b4db"
+    },
+    {
+      "platform": "proxy-amd64",
+      "image": "glance-proxy:frontier-rc",
+      "local_image_id": "sha256:6ba150152a6e267b273e6a195043c8dc755518d7ff1524497ffc9de94339d9d8",
+      "registry_digest": null,
+      "published": false,
+      "binary_sha256": "5695106de27f858a2c736a5811401e2509e64ee353f22d47fd47405cc04e7766",
+      "source_commit": "0d3b1a36441e67fc2343cd3fd7e48b63d8b687ff",
+      "vulnerabilities": {
+        "UNKNOWN": 1
+      },
+      "sbom_components": 196,
+      "sbom_sha256": "4e563c902a4fb1e58617719fe2c5876309ebd7657fd059a0d51b269cc5a244d0"
+    },
+    {
+      "platform": "proxy-arm64",
+      "image": "glance-proxy:frontier-arm64",
+      "local_image_id": "sha256:32c6e4815f00114e819f733777b92a15e43014500a3f15671f6acba8c4d01efc",
+      "registry_digest": null,
+      "published": false,
+      "binary_sha256": "e6c956c3e85f78b23d8106b7b07b2a1ce4db073b3f16c649d75660c6ab25c433",
+      "source_commit": "0d3b1a36441e67fc2343cd3fd7e48b63d8b687ff",
+      "vulnerabilities": {
+        "UNKNOWN": 1
+      },
+      "sbom_components": 196,
+      "sbom_sha256": "78e8ab8b275d4f1501b00c7c44f608fcda667d606cf2a03287e01ed587b7b36a"
+    }
+  ],
+  "scope": "local reviewed Linux AMD64 and emulated ARM64 release candidates; no registry push, GitHub release, macOS binary or public deployment claimed",
+  "checksums": "SHA256SUMS covers all nested package, source, SBOM, notice and report files",
+  "image_archive": {
+    "filename": "container-images.tar.gz",
+    "bytes": 167784806,
+    "sha256": "252180b3d2f8f4bbcb33e35a18bd0814e5614ac4897b34acdb5dc0305d5ff43d",
+    "restore": "gzip -dc container-images.tar.gz | docker load",
+    "contains_owner_data": false
+  }
+}

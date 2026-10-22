@@ -1,7 +1,7 @@
 {
   "historical_source_commit": "0a376f9",
   "old_binary_sha256": "87bc4e97e5741bbe1c93a80c2a98451644b89566732414c6ae322b4afbe0ad65",
-  "new_binary_sha256": "80356662610568a9c50b9a2f2f632ebb4cf0a5ec39e97061a509c7cf71f31a3f",
+  "new_binary_sha256": "5b73d3b2c5983c5ea5b4d69c35a2450e14cb2d132d50a95d496819bd486fd6fc",
   "from_schema": 1,
   "to_schema": 12,
   "fixture": "real v1 server writes three local widgets, Unicode text and bookmarks; no credentials or upstream calls",

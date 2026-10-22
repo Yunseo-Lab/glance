@@ -1,0 +1,11 @@
+{
+  "checked_at_utc": "2026-10-22T02:23:57.687837+00:00",
+  "missing_backup_warns": true,
+  "verified_fresh_backup_healthy": true,
+  "verified_72_hour_old_backup_warns": true,
+  "corrupt_newer_backup_warns": "verified separately in backup-recovery.json",
+  "disk_check": "real workspace free space read; no disk-full condition manufactured",
+  "launchd": "both plist templates parsed only; actual launchctl/reboot/sleep deferred to F079",
+  "cloud_install": "current install script re-run successfully, start helper invoked twice; persisted DB/key preserved and fts5 asserted",
+  "cloud_draft": "saved; requires_publish=true; no fresh-environment or published-state claim"
+}

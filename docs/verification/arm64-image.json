@@ -1,8 +1,8 @@
 {
-  "image_id": "sha256:befaaf0dd59af433c7dff83a2b57bf3414686111424568cd467537b59a2a63af",
+  "image_id": "sha256:6cdcf8b1841667d7fafd8615eb2cf8f233f01d2fbf123468c60c51dcb6476e3a",
   "architecture": "arm64",
   "execution": "QEMU user-mode with actual image rootfs libraries; not hardware",
-  "binary_sha256": "3956ca8b3520c9b76c70017240629f1dc171776e5dfff455bbd5da64f381e810",
+  "binary_sha256": "a71f42988a1ef7d2c2eb53efb3593cc9af96e5bfbd844f3683301ab541173ab8",
   "fts5": true,
   "readiness": true,
   "owner_api": true,

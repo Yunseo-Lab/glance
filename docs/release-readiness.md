@@ -1,3 +1,5 @@
+> 최신 기준: [80단계 진행 기록](frontier-progress.md), [G7 최종 검증](verification-g7.md). 조사·설계8단계와 구현·검증70단계를 처리했습니다. 실제 Mac·공인 HTTPS·휴대전화 인수2단계는 외부 조건으로 미완료입니다. 아래 표는 초기 개인용 후보의 역사적 기록입니다.
+
 # Personal release readiness
 
 Scope: a single owner using a private dashboard, deployed to the user's Mac mini.

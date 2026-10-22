@@ -2,7 +2,7 @@
 
 개인용 dashboard의 SQLite 검색 빌드는 CGO와 FTS5가 필요합니다. `bash scripts/build-dashboard.sh` 또는 `CGO_ENABLED=1 go build -tags sqlite_fts5 -o build/glance .`를 사용하세요. 검증은 `go test -tags sqlite_fts5 -race ./...`입니다. 기존 YAML 실행 모드는 유지합니다.
 
-> [사용 방법](docs/editable-dashboard.md) · [맥 미니 배포·복구](docs/operations.md) · [출시 검증 현황](docs/release-readiness.md)
+> [사용 방법](docs/editable-dashboard.md) · [맥 미니 배포·복구](docs/operations.md) · [80단계 진행 현황](docs/frontier-progress.md) · [최종 검증](docs/verification-g7.md)
 > [계속 갱신하는 구현 현황](docs/frontier-progress.md) · [80단계 구현 계획](docs/frontier-implementation-plan.md) · [관련 저장소 비교](docs/research/related-repositories.md)
 
 <p align="center"><em>What if you could see everything at a...</em></p>

@@ -5,5 +5,5 @@
   "secure_httponly_samesite_cookie": true,
   "authenticated_save": true,
   "logout_revokes_session": true,
-  "proxy_binary_sha256": "617e7590b47012e8a1d005124f191d5a5a979b74559e501995660b42b2a80df1"
+  "proxy_binary_sha256": "5695106de27f858a2c736a5811401e2509e64ee353f22d47fd47405cc04e7766"
 }
